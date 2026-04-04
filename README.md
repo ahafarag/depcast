@@ -35,8 +35,8 @@ Community failure signals were detectable for all 46 releases with retrievable p
 **Finding 2 — Pattern C: breaking without detected symbol removal**
 37% of confirmed breaking releases (19/51) show V(r)=0 — they break ecosystems without removing any detected exported symbol. These are invisible to static API diff tools yet generate an average of 32.1 GitHub issues within 24 hours, directly motivating the D(t) runtime signal component.
 
-**Finding 3 — Epidemiological propagation confirmed**
-All 44 clean fitted releases exhibit R₀ > 1.0 under a SIR model (median R₀=1.42). Zero releases are contained (R₀ < 1.0). Breaking changes universally spread beyond initial adopters.
+**Finding 3 — Epidemiological propagation observed in confirmed-breaking sample**
+All 44 clean fitted releases exhibit R₀ > 1.0 under a SIR model (median R₀=1.42, n=44 excluding two fitting-artifact outliers). Zero releases are contained (R₀ < 1.0). In this confirmed-breaking sample, all clean fitted releases spread beyond initial adopters.
 
 ---
 
