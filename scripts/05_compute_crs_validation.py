@@ -36,12 +36,13 @@ import os
 os.makedirs("data", exist_ok=True)
 os.makedirs("figures", exist_ok=True)
 
-RELEASES_FILE  = "data/breaking_releases.csv"
+RELEASES_FILE   = "data/breaking_releases.csv"
 VOLATILITY_FILE = "data/api_volatility.csv"
-SIGNALS_FILE   = "data/propagation_signals.csv"
-SIR_FILE       = "data/sir_model_results.csv"
-OUTPUT_CSV     = "data/crs_scores.csv"
-OUTPUT_FIG     = "figures/crs_validation.png"
+SIGNALS_FILE    = "data/propagation_signals.csv"
+CI_SIGNALS_FILE = "data/ci_signals.csv"
+SIR_FILE        = "data/sir_model_results.csv"
+OUTPUT_CSV      = "data/crs_scores.csv"
+OUTPUT_FIG      = "figures/crs_validation.png"
 
 def normalize(series):
     """Normalize a pandas series to [0,1]."""
@@ -69,8 +70,22 @@ def build_features(df):
     else:
         df["E_r"] = 0.5
 
-    # D(t) — Observed failure rate at 24h (proportion of issues vs dependents)
-    if "issues_24h" in df.columns and "dependent_count" in df.columns:
+    # D(t) — Observed failure rate.
+    # Priority: CI rejection signals (script 03b) > GitHub issue rate (script 03) > default.
+    # CI signals are more reliable for releases pre-2019 where GitHub search history is sparse.
+    has_ci = (
+        "pr_rejection_rate" in df.columns
+        and df["pr_rejection_rate"].notna().any()
+    )
+    if has_ci:
+        ci_rate = df["pr_rejection_rate"].fillna(0).astype(float)
+        if "ci_failure_issues" in df.columns:
+            ci_issues_norm = normalize(df["ci_failure_issues"].fillna(0).astype(float))
+            D_raw = (0.6 * ci_rate + 0.4 * ci_issues_norm).clip(upper=1)
+        else:
+            D_raw = ci_rate.clip(upper=1)
+        df["D_t"] = normalize(D_raw)
+    elif "issues_24h" in df.columns and "dependent_count" in df.columns:
         dep = df["dependent_count"].fillna(1).astype(float).clip(lower=1)
         iss = df["issues_24h"].fillna(0).astype(float)
         D_raw = (iss / dep).clip(upper=1)
@@ -120,6 +135,15 @@ def main():
                            "issues_24h","issues_48h","issues_72h","first_issue_hours"]],
                      on=["package","breaking_version"], how="left")
         print(f"Loaded signals:      {len(sig)} rows")
+
+    if os.path.exists(CI_SIGNALS_FILE):
+        ci = pd.read_csv(CI_SIGNALS_FILE)
+        ci_cols = ["package", "breaking_version", "pr_rejection_rate",
+                   "bot_prs_total", "bot_prs_rejected", "ci_failure_issues"]
+        ci_cols = [c for c in ci_cols if c in ci.columns]
+        df = df.merge(ci[ci_cols], on=["package", "breaking_version"], how="left")
+        print(f"Loaded CI signals:   {len(ci)} rows  "
+              f"(D(t) will prefer pr_rejection_rate)")
 
     if os.path.exists(SIR_FILE):
         sir = pd.read_csv(SIR_FILE)
@@ -195,6 +219,9 @@ def main():
         output_cols.append("R0")
     if "first_issue_hours" in df.columns:
         output_cols.append("first_issue_hours")
+    for ci_col in ("pr_rejection_rate", "bot_prs_total", "bot_prs_rejected", "ci_failure_issues"):
+        if ci_col in df.columns:
+            output_cols.append(ci_col)
 
     df[output_cols].to_csv(OUTPUT_CSV, index=False)
 

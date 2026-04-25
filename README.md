@@ -50,6 +50,7 @@ depcast/
 ├── data/
 │   ├── breaking_releases.csv            # 51 confirmed breaking npm releases
 │   ├── propagation_signals.csv          # N(t) GitHub issue counts, 72h window, n=46
+│   ├── ci_signals.csv                   # D(t) CI signals: Dependabot/Renovate PR rejection rates
 │   ├── api_volatility.csv               # V(r) scores for 51 releases
 │   ├── sir_model_results.csv            # SIR model R₀ for 46 releases (with outlier flags)
 │   └── crs_scores.csv                   # CRS(t) scores for 51 releases
@@ -57,6 +58,7 @@ depcast/
 │   ├── 01_collect_breaking_releases.py  # Seed dataset collection from npm registry
 │   ├── 02_compute_api_volatility.py     # V(r) via heuristic export-declaration extraction
 │   ├── 03_fetch_propagation_signals.py  # N(t) via date-filtered GitHub Search API
+│   ├── 03b_fetch_ci_signals.py          # D(t) via Dependabot/Renovate PR rejection + CI failures
 │   ├── 04_fit_sir_model.py              # SIR model fitting and R₀ estimation
 │   └── 05_compute_crs_validation.py     # CRS computation and validation figures
 └── figures/
@@ -80,11 +82,14 @@ pip install requests pandas scipy matplotlib seaborn numpy scikit-learn
 python scripts/01_collect_breaking_releases.py
 python scripts/02_compute_api_volatility.py
 python scripts/03_fetch_propagation_signals.py --token YOUR_GITHUB_TOKEN
+python scripts/03b_fetch_ci_signals.py --token YOUR_GITHUB_TOKEN
 python scripts/04_fit_sir_model.py
 python scripts/05_compute_crs_validation.py
 ```
 
-A GitHub personal access token with `public_repo` scope is required for script 03. Tokens can be generated at https://github.com/settings/tokens.
+A GitHub personal access token with `public_repo` scope is required for scripts 03 and 03b. Tokens can be generated at https://github.com/settings/tokens.
+
+Script 03b is optional but recommended: it collects Dependabot/Renovate PR rejection rates and CI-failure keyword counts, which are more reliable D(t) proxies for releases predating GitHub's search index (~2018). When `data/ci_signals.csv` is present, script 05 automatically prefers these signals over raw issue counts for the D(t) component.
 
 ### V(r) method
 
@@ -120,13 +125,15 @@ Dependency Update → [ DEPCAST CONSUMER GATE ] → Build → Tests → Deploy
 
 ## Research Agenda
 
-| Phase | Task | Target Venue |
-|-------|------|--------------|
-| 1 | Extend to 200+ releases across npm, PyPI, pub.dev; SIR-on-graph model | MSR 2027 |
-| 2 | Add non-breaking releases; logistic regression weight learning; AUC-ROC validation | EMSE 2027 |
-| 3 | Publisher gate prototype as npm package; false positive/negative measurement | ICSME 2027 |
-| 4 | Cross-ecosystem replication on PyPI and pub.dev | MSR 2028 |
-| 5 | Live GitHub Action deployment; real telemetry accuracy study | ICSE industry |
+| Phase | Task | Status | Target Venue |
+|-------|------|--------|--------------|
+| 1 | Empirical study: 51 breaking npm releases; SIR propagation model; CRS scoring | **Done (v0.5)** | arXiv cs.SE |
+| 1b | Improved D(t) signal: Dependabot/Renovate PR rejection + CI-failure keyword collection | **Implemented** | — |
+| 2 | Extend to 200+ releases across npm, PyPI, pub.dev; SIR-on-graph model | Planned | MSR 2027 |
+| 3 | Add non-breaking releases; logistic regression weight learning; AUC-ROC validation | Planned | EMSE 2027 |
+| 4 | Publisher gate prototype as npm package; false positive/negative measurement | Planned | ICSME 2027 |
+| 5 | Cross-ecosystem replication on PyPI and pub.dev | Planned | MSR 2028 |
+| 6 | Live GitHub Action deployment; real telemetry accuracy study | Planned | ICSE industry |
 
 ---
 
