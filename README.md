@@ -83,6 +83,8 @@ python scripts/01_collect_breaking_releases.py
 python scripts/02_compute_api_volatility.py
 python scripts/03_fetch_propagation_signals.py --token YOUR_GITHUB_TOKEN
 python scripts/03b_fetch_ci_signals.py --token YOUR_GITHUB_TOKEN
+# Optional: add --checks-api for direct CI measurement (adds ~2 API calls per PR)
+# python scripts/03b_fetch_ci_signals.py --token YOUR_GITHUB_TOKEN --checks-api --max-prs 10
 python scripts/04_fit_sir_model.py
 python scripts/05_compute_crs_validation.py
 ```
@@ -136,12 +138,35 @@ Dependency Update → [ DEPCAST CONSUMER GATE ] → Build → Tests → Deploy
 | Phase | Task | Status | Target Venue |
 |-------|------|--------|--------------|
 | 1 | Empirical study: 51 breaking npm releases; SIR propagation model; CRS scoring | **Done (v0.5)** | arXiv cs.SE |
-| 1b | Improved D(t) signal: Dependabot/Renovate PR rejection + CI-failure keyword collection | **Implemented** | — |
+| 1b | D(t) signal stack: GitHub Checks API on bot PRs; npm deprecation; retroactive Dependabot coverage | **Implemented** | — |
 | 2 | Extend to 200+ releases across npm, PyPI, pub.dev; SIR-on-graph model | Planned | MSR 2027 |
 | 3 | Add non-breaking releases; logistic regression weight learning; AUC-ROC validation | Planned | EMSE 2027 |
 | 4 | Publisher gate prototype as npm package; false positive/negative measurement | Planned | ICSME 2027 |
-| 5 | Cross-ecosystem replication on PyPI and pub.dev | Planned | MSR 2028 |
-| 6 | Live GitHub Action deployment; real telemetry accuracy study | Planned | ICSE industry |
+| 5 | Renovate plugin for live telemetry aggregation *(see spec below)* | Planned | ICSE industry |
+| 6 | Cross-ecosystem replication on PyPI and pub.dev | Planned | MSR 2028 |
+
+### Renovate Plugin Specification (Phase 5)
+
+The highest-leverage live-signal source is a **Renovate plugin** that emits anonymized upgrade outcome events to a DepCast aggregator endpoint. Renovate runs inside CI pipelines of hundreds of thousands of repos, making even a 1% opt-in rate sufficient for statistically significant per-release signal within hours of publish.
+
+**Plugin contract (proposed):**
+```json
+POST https://api.depcast.io/v1/signal
+{
+  "package":   "chalk",
+  "from":      "4.1.2",
+  "to":        "5.0.0",
+  "outcome":   "ci_failed" | "merged" | "closed_manual",
+  "checks_total": 12,
+  "checks_failed": 3,
+  "repo_hash": "<sha256 of org/repo — never raw>",
+  "ts":        1714000000
+}
+```
+
+**Privacy model:** `repo_hash` is a one-way hash; no repo identity is stored. Only aggregate counts per `(package, to_version)` are surfaced via the DepCast API. Opt-in is explicit via `depcast: true` in `renovate.json`.
+
+**Research value:** replaces the GitHub Search API approximation with ground-truth CI outcomes aggregated in real time — the data source that makes DepCast's D(t) component publishable at the precision required for ICSE industry track.
 
 ---
 

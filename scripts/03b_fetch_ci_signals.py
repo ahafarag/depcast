@@ -167,7 +167,7 @@ def search_bot_prs(pkg, version, publish_dt, token, window_days=90):
             time.sleep(2)
 
     if not all_prs:
-        return 0, 0, 0, None
+        return 0, 0, 0, None, []
 
     prs = list(all_prs.values())
 
@@ -190,7 +190,7 @@ def search_bot_prs(pkg, version, publish_dt, token, window_days=90):
                    and not p.get("pull_request", {}).get("merged_at"))
 
     rejection_rate = rejected / total if total > 0 else None
-    return total, merged, rejected, rejection_rate
+    return total, merged, rejected, rejection_rate, prs  # prs_list for Checks API reuse
 
 
 def _pr_in_window(pr, start_dt, end_dt):
@@ -304,12 +304,126 @@ def fetch_npm_release_signals(pkg, version, publish_dt):
     return result
 
 
+def fetch_checks_api_failure_rate(prs, publish_dt, token,
+                                  max_prs=15, window_hours=72):
+    """
+    Query GitHub Checks API on a sample of Dependabot/Renovate PRs to
+    directly measure CI failure rate within window_hours of publish_dt.
+
+    This is more precise than PR rejection rate, which conflates CI failure
+    with maintainer preference, wrong version, review delay, etc.
+
+    Strategy: prioritise rejected PRs in the sample (they're more likely to
+    hold CI failures) and call the Checks API on each PR's head commit.
+
+    Returns (prs_checked, prs_with_ci_failure, direct_ci_failure_rate_or_None).
+    Rate limiting: ~2 API calls per PR; caller should limit max_prs accordingly.
+    """
+    if not prs:
+        return 0, 0, None
+
+    # Prioritise closed-unmerged PRs — they're the signal we care about most
+    rejected = [p for p in prs
+                if p.get("state") == "closed"
+                and not p.get("pull_request", {}).get("merged_at")]
+    rest     = [p for p in prs if p not in rejected]
+    sample   = (rejected + rest)[:max_prs]
+
+    checked = 0
+    failed  = 0
+    failure_conclusions = {"failure", "cancelled", "timed_out", "action_required"}
+
+    for pr in sample:
+        # Resolve the PR's REST API URL from the search result
+        pr_api_url = pr.get("pull_request", {}).get("url", "")
+        if not pr_api_url:
+            html = pr.get("html_url", "")
+            parts = html.replace("https://github.com/", "").split("/")
+            if len(parts) >= 4:
+                pr_api_url = (f"https://api.github.com/repos"
+                              f"/{parts[0]}/{parts[1]}/pulls/{parts[3]}")
+        if not pr_api_url:
+            continue
+
+        try:
+            # Step 1: get PR details → head SHA + repo URL
+            r = requests.get(pr_api_url, headers=get_headers(token), timeout=15)
+            time.sleep(0.6)
+            if r.status_code == 403:
+                reset = int(r.headers.get("X-RateLimit-Reset", time.time() + 60))
+                time.sleep(max(reset - time.time(), 1) + 2)
+                r = requests.get(pr_api_url, headers=get_headers(token), timeout=15)
+            if r.status_code != 200:
+                continue
+
+            pr_data  = r.json()
+            head_sha = pr_data.get("head", {}).get("sha", "")
+            repo_url = pr_data.get("base", {}).get("repo", {}).get("url", "")
+            if not head_sha or not repo_url:
+                continue
+
+            # Step 2: get check-runs for the PR head commit
+            r2 = requests.get(
+                f"{repo_url}/commits/{head_sha}/check-runs",
+                headers=get_headers(token),
+                params={"per_page": 100},
+                timeout=15,
+            )
+            time.sleep(0.6)
+            if r2.status_code != 200:
+                continue
+
+            runs = r2.json().get("check_runs", [])
+            if not runs:
+                continue
+            checked += 1
+
+            # A PR counts as "CI failed" if any check run concluded in failure
+            # and (for dated releases) completed within window_hours of publish.
+            pr_has_failure = False
+            for run in runs:
+                if run.get("conclusion") not in failure_conclusions:
+                    continue
+                if publish_dt:
+                    completed_str = run.get("completed_at") or run.get("started_at", "")
+                    if not completed_str:
+                        continue
+                    try:
+                        run_dt = datetime.fromisoformat(
+                            completed_str.replace("Z", "+00:00"))
+                        if (run_dt - publish_dt).total_seconds() <= window_hours * 3600:
+                            pr_has_failure = True
+                            break
+                    except Exception:
+                        continue
+                else:
+                    pr_has_failure = True
+                    break
+
+            if pr_has_failure:
+                failed += 1
+
+        except Exception as e:
+            print(f"\n  WARN (checks_api): {e}", end="")
+
+    rate = failed / checked if checked > 0 else None
+    return checked, failed, rate
+
+
 # ── Main ───────────────────────────────────────────────────────────────────
 
 def main():
     parser = argparse.ArgumentParser(description="Fetch CI-based compatibility signals")
     parser.add_argument("--token", default=os.environ.get("GITHUB_TOKEN", ""),
                         help="GitHub personal access token (public_repo scope)")
+    parser.add_argument("--checks-api", action="store_true",
+                        help=("Also query GitHub Checks API on each Dependabot PR "
+                              "for direct CI failure measurement (adds ~2 API calls "
+                              "per PR; use --max-prs to control cost, default 10). "
+                              "Outputs ci_check_failure_rate column."))
+    parser.add_argument("--max-prs", type=int, default=10,
+                        help="Max Dependabot PRs to check via Checks API per release "
+                             "(default 10; only relevant with --checks-api)")
     args = parser.parse_args()
 
     if not args.token:
@@ -364,9 +478,23 @@ def main():
             time.sleep(0.3)
 
         # Dependabot/Renovate PR rejection signals
-        total_prs, merged_prs, rejected_prs, rejection_rate = search_bot_prs(
+        # search_bot_prs returns the raw PR list via a second return path so
+        # fetch_checks_api_failure_rate can reuse the same objects without a
+        # second search query.  We capture prs_list here for that purpose.
+        total_prs, merged_prs, rejected_prs, rejection_rate, prs_list = search_bot_prs(
             pkg, str(version), pub_dt, args.token
         )
+
+        # Direct CI failure rate via GitHub Checks API (opt-in, costs ~2 calls/PR)
+        ci_checked = ci_direct_failed = None
+        ci_check_failure_rate = None
+        if args.checks_api and prs_list:
+            ci_checked, ci_direct_failed, ci_check_failure_rate = \
+                fetch_checks_api_failure_rate(
+                    prs_list, pub_dt, args.token, max_prs=args.max_prs
+                )
+            if ci_check_failure_rate is not None:
+                ci_check_failure_rate = round(ci_check_failure_rate, 4)
 
         # CI-failure keyword signals in 72h window
         ci_failure_count = search_ci_failure_issues(
@@ -378,27 +506,32 @@ def main():
         time.sleep(0.3)
 
         records.append({
-            "package":           pkg,
-            "breaking_version":  version,
-            "published_at":      pub_dt.strftime("%Y-%m-%d %H:%M UTC") if pub_dt else None,
-            "bot_prs_total":     total_prs,
-            "bot_prs_merged":    merged_prs,
-            "bot_prs_rejected":  rejected_prs,
-            "pr_rejection_rate": round(rejection_rate, 4) if rejection_rate is not None else None,
-            "ci_failure_issues": ci_failure_count,
-            "is_deprecated":     npm_signals["is_deprecated"],
-            "days_to_patch":     npm_signals["days_to_patch"],
-            "quick_patch":       npm_signals["quick_patch"],
+            "package":                pkg,
+            "breaking_version":       version,
+            "published_at":           pub_dt.strftime("%Y-%m-%d %H:%M UTC") if pub_dt else None,
+            "bot_prs_total":          total_prs,
+            "bot_prs_merged":         merged_prs,
+            "bot_prs_rejected":       rejected_prs,
+            "pr_rejection_rate":      round(rejection_rate, 4) if rejection_rate is not None else None,
+            "ci_check_prs_sampled":   ci_checked,
+            "ci_check_prs_failed":    ci_direct_failed,
+            "ci_check_failure_rate":  ci_check_failure_rate,
+            "ci_failure_issues":      ci_failure_count,
+            "is_deprecated":          npm_signals["is_deprecated"],
+            "days_to_patch":          npm_signals["days_to_patch"],
+            "quick_patch":            npm_signals["quick_patch"],
         })
 
         # Incremental save
         pd.DataFrame(records).to_csv(OUTPUT, index=False)
 
-        rr_str  = f"reject={rejection_rate:.2f}" if rejection_rate is not None else "reject=n/a"
-        npm_str = (f"deprecated={'Y' if npm_signals['is_deprecated'] else 'N'}"
-                   f"  patch={npm_signals['days_to_patch']}d" if npm_signals["days_to_patch"] else
-                   f"deprecated={'Y' if npm_signals['is_deprecated'] else 'N'}")
-        print(f"prs={total_prs}  merged={merged_prs}  {rr_str}  "
+        rr_str   = f"reject={rejection_rate:.2f}" if rejection_rate is not None else "reject=n/a"
+        chk_str  = (f"  checks={ci_direct_failed}/{ci_checked}"
+                    if ci_checked is not None else "")
+        npm_str  = (f"deprecated={'Y' if npm_signals['is_deprecated'] else 'N'}"
+                    + (f"  patch={npm_signals['days_to_patch']}d"
+                       if npm_signals["days_to_patch"] is not None else ""))
+        print(f"prs={total_prs}  merged={merged_prs}  {rr_str}{chk_str}  "
               f"ci_issues={ci_failure_count}  {npm_str}")
 
     df = pd.DataFrame(records)

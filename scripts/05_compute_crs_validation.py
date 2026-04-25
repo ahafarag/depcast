@@ -71,12 +71,18 @@ def build_features(df):
         df["E_r"] = 0.5
 
     # D(t) — Observed failure rate. Signal priority (most reliable → least):
-    #   1. CI bot PR rejection rate   (script 03b, GitHub API)
-    #   2. GitHub issue rate at 24h   (script 03, GitHub API)
-    #   3. npm publisher signals      (script 03b, npm registry — works for ALL ages)
-    #   4. Default 0.3
-    # Signals are applied per-release: a release uses the best available signal.
+    #   1. Checks API failure rate  (script 03b --checks-api: direct CI measurement)
+    #   2. Bot PR rejection rate    (script 03b: proxy — closed PRs imply CI failure)
+    #   3. GitHub issue rate at 24h (script 03: keyword search)
+    #   4. npm publisher signals    (script 03b: works for ALL release ages, no token)
+    #   5. Default 0.3
+    # Applied per-release: each row uses the highest-priority available signal.
 
+    has_checks = (
+        "ci_check_failure_rate" in df.columns
+        and df["ci_check_failure_rate"].notna().any()
+        and df["ci_check_failure_rate"].fillna(0).max() > 0
+    )
     has_ci = (
         "pr_rejection_rate" in df.columns
         and df["pr_rejection_rate"].notna().any()
@@ -119,8 +125,13 @@ def build_features(df):
             ci_raw = normalize((0.6 * ci_rate + 0.4 * ci_issues_norm).clip(upper=1))
         else:
             ci_raw = normalize(ci_rate.clip(upper=1))
-        # CI is highest priority — override wherever non-zero CI data exists
         D_t = ci_raw.where(df["pr_rejection_rate"].fillna(0) > 0, D_t)
+
+    if has_checks:
+        # Checks API rate is the most precise signal — direct CI measurement.
+        # It overrides everything else where data exists.
+        checks_raw = normalize(df["ci_check_failure_rate"].fillna(0).astype(float))
+        D_t = checks_raw.where(df["ci_check_failure_rate"].fillna(0) > 0, D_t)
 
     df["D_t"] = D_t
 
@@ -167,9 +178,10 @@ def main():
 
     if os.path.exists(CI_SIGNALS_FILE):
         ci = pd.read_csv(CI_SIGNALS_FILE)
-        ci_cols = ["package", "breaking_version", "pr_rejection_rate",
-                   "bot_prs_total", "bot_prs_rejected", "ci_failure_issues",
-                   "is_deprecated", "days_to_patch", "quick_patch"]
+        ci_cols = ["package", "breaking_version",
+                   "ci_check_failure_rate", "ci_check_prs_sampled", "ci_check_prs_failed",
+                   "pr_rejection_rate", "bot_prs_total", "bot_prs_rejected",
+                   "ci_failure_issues", "is_deprecated", "days_to_patch", "quick_patch"]
         ci_cols = [c for c in ci_cols if c in ci.columns]
         df = df.merge(ci[ci_cols], on=["package", "breaking_version"], how="left")
         print(f"Loaded CI signals:   {len(ci)} rows  "
@@ -249,7 +261,8 @@ def main():
         output_cols.append("R0")
     if "first_issue_hours" in df.columns:
         output_cols.append("first_issue_hours")
-    for extra_col in ("pr_rejection_rate", "bot_prs_total", "bot_prs_rejected",
+    for extra_col in ("ci_check_failure_rate", "ci_check_prs_sampled", "ci_check_prs_failed",
+                      "pr_rejection_rate", "bot_prs_total", "bot_prs_rejected",
                       "ci_failure_issues", "is_deprecated", "days_to_patch", "quick_patch"):
         if extra_col in df.columns:
             output_cols.append(extra_col)
