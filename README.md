@@ -50,7 +50,7 @@ depcast/
 ├── data/
 │   ├── breaking_releases.csv            # 51 confirmed breaking npm releases
 │   ├── propagation_signals.csv          # N(t) GitHub issue counts, 72h window, n=46
-│   ├── ci_signals.csv                   # D(t) CI signals: Dependabot/Renovate PR rejection rates
+│   ├── ci_signals.csv                   # D(t) signals: bot PR rejection, CI failures, npm deprecation
 │   ├── api_volatility.csv               # V(r) scores for 51 releases
 │   ├── sir_model_results.csv            # SIR model R₀ for 46 releases (with outlier flags)
 │   └── crs_scores.csv                   # CRS(t) scores for 51 releases
@@ -89,7 +89,15 @@ python scripts/05_compute_crs_validation.py
 
 A GitHub personal access token with `public_repo` scope is required for scripts 03 and 03b. Tokens can be generated at https://github.com/settings/tokens.
 
-Script 03b is optional but recommended: it collects Dependabot/Renovate PR rejection rates and CI-failure keyword counts, which are more reliable D(t) proxies for releases predating GitHub's search index (~2018). When `data/ci_signals.csv` is present, script 05 automatically prefers these signals over raw issue counts for the D(t) component.
+Script 03b is optional but recommended. It collects three signal types:
+
+| Signal | Source | API token required | Works for old releases? |
+|--------|--------|--------------------|------------------------|
+| `pr_rejection_rate` | Dependabot/Renovate PRs (GitHub) | Yes | Yes — retroactive scans from 2018+ cover pre-2018 releases |
+| `ci_failure_issues` | CI-failure keyword issues (GitHub) | Yes | Partially (~2018+) |
+| `is_deprecated` / `quick_patch` | npm registry deprecation + patch timeline | No | Yes — all releases |
+
+When `data/ci_signals.csv` is present, script 05 applies a per-release signal priority: CI rejection rate overrides issue counts, npm signals fill in where both GitHub sources are zero (common for pre-2019 releases where Dependabot didn't exist and GitHub search history is sparse).
 
 ### V(r) method
 

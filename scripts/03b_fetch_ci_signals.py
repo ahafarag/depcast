@@ -125,17 +125,31 @@ def fetch_publish_date(pkg, version):
 
 # ── Signal collectors ──────────────────────────────────────────────────────
 
-def search_bot_prs(pkg, version, publish_dt, token, window_days=30):
+# Dependabot public launch date — bot PRs don't exist before this for any repo.
+# For releases published before this date, we search all historical bot PRs
+# (retroactive scans) rather than filtering to a post-publish window.
+_DEPENDABOT_LAUNCH = datetime(2018, 6, 1, tzinfo=timezone.utc)
+
+
+def search_bot_prs(pkg, version, publish_dt, token, window_days=90):
     """
     Search for Dependabot / Renovate PRs bumping pkg to version.
     Counts: total opened, merged, closed-without-merge (rejected).
     Returns (total, merged, rejected, rejection_rate_or_None).
+
+    Window strategy:
+    - Release pre-2018-06: use ALL historical bot PRs (Dependabot retroactively
+      scans repos and creates PRs years after the release; these represent
+      real consumer rejection signals even if created in 2020+).
+    - Release post-2018-06: narrow to window_days after publish (default 90d).
     """
+    # Title-specific patterns reduce false positives for large packages
+    # (e.g. "react" appearing in "@types/react" or "react-dom" bump titles).
     queries = [
-        f'"{pkg}" "{version}" is:pr author:app/dependabot',
-        f'"{pkg}" "{version}" is:pr author:app/renovate',
-        f'"bump {pkg}" "{version}" is:pr',
-        f'"update {pkg}" "to {version}" is:pr',
+        f'"bump {pkg}" "to {version}" is:pr author:app/dependabot',
+        f'"bump {pkg}" "{version}" is:pr author:app/dependabot',
+        f'"update dependency {pkg}" "{version}" is:pr author:app/renovate',
+        f'"update {pkg}" "to {version}" is:pr author:app/renovate',
     ]
 
     url = "https://api.github.com/search/issues"
@@ -147,7 +161,7 @@ def search_bot_prs(pkg, version, publish_dt, token, window_days=30):
             if r.status_code == 200:
                 for pr in r.json().get("items", []):
                     all_prs[pr["html_url"]] = pr
-            time.sleep(1.5)
+            time.sleep(2.1)
         except Exception as e:
             print(f"\n  WARN (bot_prs): {e}", end="")
             time.sleep(2)
@@ -157,22 +171,17 @@ def search_bot_prs(pkg, version, publish_dt, token, window_days=30):
 
     prs = list(all_prs.values())
 
-    # Narrow to window after publish if we have the date
-    if publish_dt:
+    # For post-Dependabot releases, narrow to the post-publish window.
+    # For pre-Dependabot releases, keep all historical PRs — they represent
+    # retroactive ecosystem rejection evidence, which is the only available signal.
+    pre_dependabot = publish_dt is None or publish_dt < _DEPENDABOT_LAUNCH
+    if not pre_dependabot and publish_dt:
         window_end = publish_dt + timedelta(days=window_days)
-        in_window = []
-        for pr in prs:
-            created_str = pr.get("created_at", "")
-            if not created_str:
-                continue
-            try:
-                created_dt = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
-                if publish_dt <= created_dt <= window_end:
-                    in_window.append(pr)
-            except Exception:
-                continue
-        if in_window:
-            prs = in_window
+        in_window = [
+            p for p in prs
+            if _pr_in_window(p, publish_dt, window_end)
+        ]
+        prs = in_window  # empty list is correct when no PRs fall in window
 
     total    = len(prs)
     merged   = sum(1 for p in prs if p.get("pull_request", {}).get("merged_at"))
@@ -182,6 +191,17 @@ def search_bot_prs(pkg, version, publish_dt, token, window_days=30):
 
     rejection_rate = rejected / total if total > 0 else None
     return total, merged, rejected, rejection_rate
+
+
+def _pr_in_window(pr, start_dt, end_dt):
+    created_str = pr.get("created_at", "")
+    if not created_str:
+        return False
+    try:
+        created_dt = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
+        return start_dt <= created_dt <= end_dt
+    except Exception:
+        return False
 
 
 def search_ci_failure_issues(pkg, version, publish_dt, token, window_hours=72):
@@ -210,12 +230,79 @@ def search_ci_failure_issues(pkg, version, publish_dt, token, window_hours=72):
             if r.status_code == 200:
                 for item in r.json().get("items", []):
                     urls.add(item["html_url"])
-            time.sleep(1.5)
+            time.sleep(2.1)
         except Exception as e:
             print(f"\n  WARN (ci_issues): {e}", end="")
             time.sleep(2)
 
     return len(urls)
+
+def fetch_npm_release_signals(pkg, version, publish_dt):
+    """
+    Query the npm registry for publisher-side breaking indicators.
+    Requires no GitHub token and works for releases of any age.
+
+    Returns a dict with:
+      is_deprecated  — 1 if the maintainer deprecated this version (strong signal)
+      days_to_patch  — days until the next same-major version was published
+                       (None if no subsequent version exists)
+      quick_patch    — 1 if a same-major patch landed within 14 days
+                       (proxy: maintainer acknowledged breakage and rushed a fix)
+    """
+    result = {"is_deprecated": 0, "days_to_patch": None, "quick_patch": 0}
+    try:
+        r = requests.get(f"https://registry.npmjs.org/{pkg}", timeout=10)
+        if r.status_code != 200:
+            return result
+
+        data     = r.json()
+        versions = data.get("versions", {})
+        times    = data.get("time", {})
+
+        # Deprecation check
+        v_meta = versions.get(str(version), {})
+        if v_meta.get("deprecated"):
+            result["is_deprecated"] = 1
+
+        # Find fastest same-major successor
+        if publish_dt:
+            try:
+                breaking = tuple(int(x) for x in str(version).split(".")[:3])
+            except ValueError:
+                return result
+
+            best_days = None
+            for v_str, v_time_str in times.items():
+                if v_str in ("created", "modified"):
+                    continue
+                try:
+                    v_tuple = tuple(int(x) for x in str(v_str).split(".")[:3])
+                except ValueError:
+                    continue
+                if len(v_tuple) < 3 or len(breaking) < 3:
+                    continue
+                if v_tuple[0] != breaking[0]:  # different major — not a patch
+                    continue
+                if v_tuple <= breaking:
+                    continue
+                try:
+                    v_dt = datetime.fromisoformat(v_time_str.replace("Z", "+00:00"))
+                except ValueError:
+                    continue
+                if v_dt <= publish_dt:
+                    continue
+                days = (v_dt - publish_dt).days
+                if best_days is None or days < best_days:
+                    best_days = days
+
+            result["days_to_patch"] = best_days
+            if best_days is not None and best_days <= 14:
+                result["quick_patch"] = 1
+
+    except Exception:
+        pass
+    return result
+
 
 # ── Main ───────────────────────────────────────────────────────────────────
 
@@ -286,6 +373,10 @@ def main():
             pkg, str(version), pub_dt, args.token
         )
 
+        # npm registry signals — no token required, works for all release ages
+        npm_signals = fetch_npm_release_signals(pkg, str(version), pub_dt)
+        time.sleep(0.3)
+
         records.append({
             "package":           pkg,
             "breaking_version":  version,
@@ -295,13 +386,20 @@ def main():
             "bot_prs_rejected":  rejected_prs,
             "pr_rejection_rate": round(rejection_rate, 4) if rejection_rate is not None else None,
             "ci_failure_issues": ci_failure_count,
+            "is_deprecated":     npm_signals["is_deprecated"],
+            "days_to_patch":     npm_signals["days_to_patch"],
+            "quick_patch":       npm_signals["quick_patch"],
         })
 
         # Incremental save
         pd.DataFrame(records).to_csv(OUTPUT, index=False)
 
-        rr_str = f"reject={rejection_rate:.2f}" if rejection_rate is not None else "reject=n/a"
-        print(f"prs={total_prs}  merged={merged_prs}  {rr_str}  ci_issues={ci_failure_count}")
+        rr_str  = f"reject={rejection_rate:.2f}" if rejection_rate is not None else "reject=n/a"
+        npm_str = (f"deprecated={'Y' if npm_signals['is_deprecated'] else 'N'}"
+                   f"  patch={npm_signals['days_to_patch']}d" if npm_signals["days_to_patch"] else
+                   f"deprecated={'Y' if npm_signals['is_deprecated'] else 'N'}")
+        print(f"prs={total_prs}  merged={merged_prs}  {rr_str}  "
+              f"ci_issues={ci_failure_count}  {npm_str}")
 
     df = pd.DataFrame(records)
     df.to_csv(OUTPUT, index=False)

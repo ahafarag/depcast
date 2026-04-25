@@ -70,30 +70,59 @@ def build_features(df):
     else:
         df["E_r"] = 0.5
 
-    # D(t) — Observed failure rate.
-    # Priority: CI rejection signals (script 03b) > GitHub issue rate (script 03) > default.
-    # CI signals are more reliable for releases pre-2019 where GitHub search history is sparse.
+    # D(t) — Observed failure rate. Signal priority (most reliable → least):
+    #   1. CI bot PR rejection rate   (script 03b, GitHub API)
+    #   2. GitHub issue rate at 24h   (script 03, GitHub API)
+    #   3. npm publisher signals      (script 03b, npm registry — works for ALL ages)
+    #   4. Default 0.3
+    # Signals are applied per-release: a release uses the best available signal.
+
     has_ci = (
         "pr_rejection_rate" in df.columns
         and df["pr_rejection_rate"].notna().any()
+        and df["pr_rejection_rate"].fillna(0).max() > 0
     )
+    has_issues = "issues_24h" in df.columns
+    has_npm = (
+        ("is_deprecated" in df.columns or "quick_patch" in df.columns)
+        and (
+            df.get("is_deprecated", pd.Series(0)).fillna(0).max() > 0
+            or df.get("quick_patch", pd.Series(0)).fillna(0).max() > 0
+        )
+    )
+
+    # Build per-release D(t) from the best available source for each row
+    D_t = pd.Series(0.3, index=df.index)  # default
+
+    if has_npm:
+        # npm_sig is naturally in [0,1]: is_deprecated (0/1) + quick_patch (0/0.5), clipped.
+        # Do NOT re-normalize — absolute values are meaningful (1.0 = deprecated is a hard signal).
+        npm_sig = df.get("is_deprecated", pd.Series(0, index=df.index)).fillna(0).astype(float)
+        if "quick_patch" in df.columns:
+            npm_sig = (npm_sig + df["quick_patch"].fillna(0).astype(float) * 0.5).clip(upper=1)
+        D_t = npm_sig.where(npm_sig > 0, D_t)
+
+    if has_issues:
+        if "dependent_count" in df.columns:
+            dep   = df["dependent_count"].fillna(1).astype(float).clip(lower=1)
+            iss   = df["issues_24h"].fillna(0).astype(float)
+            issue_raw = normalize((iss / dep).clip(upper=1))
+        else:
+            issue_raw = normalize(df["issues_24h"].fillna(0).astype(float))
+        # Override npm signal where issue data is non-zero
+        D_t = issue_raw.where(df["issues_24h"].fillna(0) > 0, D_t)
+
     if has_ci:
         ci_rate = df["pr_rejection_rate"].fillna(0).astype(float)
         if "ci_failure_issues" in df.columns:
             ci_issues_norm = normalize(df["ci_failure_issues"].fillna(0).astype(float))
-            D_raw = (0.6 * ci_rate + 0.4 * ci_issues_norm).clip(upper=1)
+            ci_raw = normalize((0.6 * ci_rate + 0.4 * ci_issues_norm).clip(upper=1))
         else:
-            D_raw = ci_rate.clip(upper=1)
-        df["D_t"] = normalize(D_raw)
-    elif "issues_24h" in df.columns and "dependent_count" in df.columns:
-        dep = df["dependent_count"].fillna(1).astype(float).clip(lower=1)
-        iss = df["issues_24h"].fillna(0).astype(float)
-        D_raw = (iss / dep).clip(upper=1)
-        df["D_t"] = normalize(D_raw)
-    elif "issues_24h" in df.columns:
-        df["D_t"] = normalize(df["issues_24h"].fillna(0).astype(float))
-    else:
-        df["D_t"] = 0.3
+            ci_raw = normalize(ci_rate.clip(upper=1))
+        # CI is highest priority — override wherever non-zero CI data exists
+        D_t = ci_raw.where(df["pr_rejection_rate"].fillna(0) > 0, D_t)
+
+    df["D_t"] = D_t
 
     # H(m) — Maintainer history: R0 from SIR model as proxy
     if "R0" in df.columns:
@@ -139,7 +168,8 @@ def main():
     if os.path.exists(CI_SIGNALS_FILE):
         ci = pd.read_csv(CI_SIGNALS_FILE)
         ci_cols = ["package", "breaking_version", "pr_rejection_rate",
-                   "bot_prs_total", "bot_prs_rejected", "ci_failure_issues"]
+                   "bot_prs_total", "bot_prs_rejected", "ci_failure_issues",
+                   "is_deprecated", "days_to_patch", "quick_patch"]
         ci_cols = [c for c in ci_cols if c in ci.columns]
         df = df.merge(ci[ci_cols], on=["package", "breaking_version"], how="left")
         print(f"Loaded CI signals:   {len(ci)} rows  "
@@ -219,9 +249,10 @@ def main():
         output_cols.append("R0")
     if "first_issue_hours" in df.columns:
         output_cols.append("first_issue_hours")
-    for ci_col in ("pr_rejection_rate", "bot_prs_total", "bot_prs_rejected", "ci_failure_issues"):
-        if ci_col in df.columns:
-            output_cols.append(ci_col)
+    for extra_col in ("pr_rejection_rate", "bot_prs_total", "bot_prs_rejected",
+                      "ci_failure_issues", "is_deprecated", "days_to_patch", "quick_patch"):
+        if extra_col in df.columns:
+            output_cols.append(extra_col)
 
     df[output_cols].to_csv(OUTPUT_CSV, index=False)
 
