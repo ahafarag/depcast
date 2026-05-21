@@ -1,0 +1,52 @@
+package,breaking_version,prior_stable_version,published_at,description,weekly_downloads,dependent_count,has_changelog,notes,label_breaking
+lodash,4.0.0,3.10.1,unknown,Lodash modular utilities.,0,0,0,"Major API restructure, _.pluck removed",1
+express,4.0.0,3.21.2,unknown,Sinatra inspired web development framework,0,0,0,Router API breaking change,1
+react,16.0.0,15.6.2,unknown,React is a JavaScript library for building user interfaces.,0,0,0,Lifecycle methods deprecated/changed,1
+react,17.0.0,16.14.0,unknown,React is a JavaScript library for building user interfaces.,0,0,0,Event delegation changed,1
+react,18.0.0,17.0.2,unknown,React is a JavaScript library for building user interfaces.,0,0,0,"Concurrent rendering, ReactDOM.render deprecated",1
+webpack,4.0.0,3.12.0,unknown,"Packs CommonJs/AMD modules for the browser. Allows to split your codebase into multiple bundles, which can be loaded on demand. Support loaders to preprocess files, i.e. json, jsx, es7, css, less, ... and your custom stuff.",0,0,0,Config API breaking change,1
+webpack,5.0.0,4.46.0,unknown,"Packs CommonJs/AMD modules for the browser. Allows to split your codebase into multiple bundles, which can be loaded on demand. Support loaders to preprocess files, i.e. json, jsx, es7, css, less, ... and your custom stuff.",0,0,0,Node.js polyfills removed,1
+babel-core,7.0.0,6.26.3,unknown,,0,127371,0,Package renamed to @babel/core,1
+typescript,2.0.0,1.8.10,unknown,TypeScript is a language for application scale JavaScript development,0,0,0,"strictNullChecks, module resolution changes",1
+typescript,3.0.0,2.9.2,unknown,,0,0,0,"Project references, tuples breaking",1
+typescript,4.0.0,3.9.7,unknown,,0,0,0,"Variadic tuple types, breaking editor changes",1
+angular,2.0.0,1.8.3,unknown,,0,0,0,"Complete rewrite, no backward compatibility",1
+vue,3.0.0,2.6.14,unknown,vue,0,0,0,"Composition API, breaking changes to filters",1
+moment,2.0.0,1.7.2,unknown,"Parse, manipulate, and display dates.",0,0,0,Locale API breaking change,1
+axios,1.0.0,0.27.2,unknown,Promise based HTTP client for the browser and node.js,0,0,0,CommonJS/ESM breaking change,1
+jest,27.0.0,26.6.3,unknown,Delightful JavaScript Testing.,0,0,0,Default test environment changed to node,1
+jest,28.0.0,27.5.1,unknown,Delightful JavaScript Testing.,0,0,0,Multiple breaking config changes,1
+eslint,6.0.0,5.16.0,unknown,An AST-based pattern checker for JavaScript.,0,0,0,"Node.js 6 dropped, plugin API changes",1
+eslint,7.0.0,6.8.0,unknown,An AST-based pattern checker for JavaScript.,0,0,0,"Node.js 8 dropped, config changes",1
+eslint,8.0.0,7.32.0,unknown,An AST-based pattern checker for JavaScript.,0,0,0,"CodePathAnalyzer breaking, plugin API change",1
+mocha,6.0.0,5.2.0,unknown,"simple, flexible, fun test framework",0,0,0,"Node.js 4/5/6 dropped, CLI API changes",1
+mocha,8.0.0,7.2.0,unknown,"simple, flexible, fun test framework",0,0,0,Root hooks breaking change,1
+chalk,5.0.0,4.1.2,unknown,Terminal string styling done right,0,0,0,"ESM-only, breaks CommonJS require()",1
+node-fetch,3.0.0,2.6.7,unknown,A light-weight module that brings Fetch API to node.js,0,46081,0,"ESM-only, breaks CommonJS require()",1
+uuid,8.0.0,7.0.3,unknown,"RFC4122 (v1, v4, and v5) UUIDs",0,0,1,Deep import paths removed,1
+uuid,9.0.0,8.3.2,unknown,"RFC4122 (v1, v4, and v5) UUIDs",0,0,1,Browser crypto API requirement,1
+glob,8.0.0,7.2.3,unknown,,0,0,0,Removed sync methods,1
+glob,9.0.0,8.1.0,unknown,the most correct and second fastest glob implementation in JavaScript,0,0,0,"ESM-only, API changes",1
+rimraf,4.0.0,3.0.2,unknown,A deep deletion module for node (like `rm -rf`),0,0,0,"ESM-only, CLI changes",1
+mkdirp,1.0.0,0.5.5,unknown,"Recursively mkdir, like `mkdir -p`",0,0,0,"Now returns Promise, breaks sync usage",1
+semver,7.0.0,6.3.0,unknown,The semantic version parser used by npm.,0,0,0,Removed deprecated methods,1
+commander,8.0.0,7.2.0,unknown,the complete solution for node.js command-line programs,0,0,0,Option handling breaking change,1
+commander,9.0.0,8.3.0,unknown,the complete solution for node.js command-line programs,0,0,0,"ESM support, breaking option parsing",1
+yargs,17.0.0,16.2.0,unknown,"yargs the modern, pirate-themed, successor to optimist.",0,0,0,"ESM support, Node 10 dropped",1
+dotenv,16.0.0,15.0.2,unknown,Loads environment variables from .env file,0,0,0,Multiline value parsing changed,1
+mongoose,6.0.0,5.13.7,unknown,Mongoose MongoDB ODM,0,0,0,"Schema strict mode, query changes",1
+mongoose,7.0.0,6.9.1,unknown,Mongoose MongoDB ODM,0,0,0,"Promises-only, callback API removed",1
+sequelize,6.0.0,5.22.4,unknown,,0,0,0,"Model.sync breaking, DataTypes changes",1
+typeorm,0.3.0,0.2.45,unknown,"Data-Mapper ORM for TypeScript, ES7, ES6, ES5. Supports MySQL, PostgreSQL, MariaDB, SQLite, MS SQL Server, Oracle, MongoDB databases.",0,0,1,Complete API rewrite,1
+graphql,16.0.0,15.8.0,unknown,A Query Language and Runtime which can target any service.,0,0,0,Execution result changes,1
+apollo-server,3.0.0,2.25.2,unknown,Production ready GraphQL Server,0,278264,1,Plugin API breaking change,1
+next,13.0.0,12.3.1,unknown,The React Framework,0,0,0,"App directory, breaking layout changes",1
+next,14.0.0,13.5.4,unknown,The React Framework,0,0,0,"Server actions, router changes",1
+nuxt,3.0.0,2.15.8,unknown,> The core of Nuxt 3,0,0,0,Complete rewrite,1
+gatsby,4.0.0,3.14.6,unknown,Blazing fast modern site generator for React,0,0,0,"GraphQL breaking, plugin API changes",1
+tailwindcss,3.0.0,2.2.19,unknown,A utility-first CSS framework for rapidly building custom user interfaces.,0,0,0,"JIT-only, class purge changes",1
+postcss,8.0.0,7.0.39,unknown,Tool for transforming styles with JS plugins,0,0,0,Plugin API breaking change,1
+rollup,3.0.0,2.79.1,unknown,Next-generation ES module bundler,0,0,0,"ES2020 baseline, config API changes",1
+vite,3.0.0,2.9.13,unknown,Native-ESM powered web dev build tool,0,0,0,"Config API, import.meta.env changes",1
+vite,4.0.0,3.2.5,unknown,Native-ESM powered web dev build tool,0,0,0,"Rollup 3, plugin API changes",1
+prettier,3.0.0,2.8.8,unknown,Prettier is an opinionated code formatter,0,0,0,"ESM-only, breaking plugin API",1
