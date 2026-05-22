@@ -9,7 +9,6 @@
 [![Status](https://img.shields.io/badge/status-active%20research-orange.svg)]()
 [![Target](https://img.shields.io/badge/target-MSR%202027-blueviolet.svg)]()
 [![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/ahafarag)
-[![Buy Me A Coffee](https://img.shields.io/badge/Support-Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/ahafarag)
 
 *Farag, A. (2026). DepCast: A Two-Sided Compatibility Intelligence Protocol for Software Package Ecosystems. Research Position Paper v0.5.*
 
@@ -273,16 +272,12 @@ If DepCast saved you debugging time or is useful for your research, consider sup
 <br>
 
 <a href="https://ko-fi.com/ahafarag" target="_blank">
-  <img src="https://cdn.ko-fi.com/cdn/kofi3.png?v=3" alt="Support on Ko-fi" height="50" width="200">
-</a>
-&nbsp;&nbsp;
-<a href="https://buymeacoffee.com/ahafarag" target="_blank">
-  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50" width="181">
+  <img src="https://cdn.ko-fi.com/cdn/kofi3.png?v=3" alt="Support on Ko-fi" height="60" width="240">
 </a>
 
 <br><br>
 
-*Ko-fi takes 0% fees. Funds go toward compute time, API costs, and keeping the research moving.*
+*Funds go toward compute time, API costs, and keeping the research moving.*
 
 </div>
 
