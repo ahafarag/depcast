@@ -25,3 +25,5 @@ Thumbs.db
 .env
 *.token
 secrets.txt
+
+data/deprecation_sweep_progress.json
