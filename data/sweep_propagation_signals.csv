@@ -1,0 +1,11 @@
+package,breaking_version,published_at,confidence,discovery_method,weekly_downloads,total_in_window,first_issue_hours,issues_6h,issues_12h,issues_24h,issues_48h,issues_72h,label_breaking
+glob,4.0.0,2014-05-20 23:32 UTC,0.9,deprecated+quick_patch,353879984,8,1.12,2,3,5,6,8,1
+glob,5.0.0,2015-03-06 07:11 UTC,0.9,deprecated+quick_patch,353879984,9,7.52,0,4,6,9,9,1
+glob,10.0.0,2023-04-09 22:26 UTC,0.9,deprecated+quick_patch,353879984,14,0.02,2,2,7,10,14,1
+uuid,3.0.0,2016-11-18 05:55 UTC,0.9,deprecated+quick_patch,261337841,24,0.14,3,12,16,19,24,1
+uuid,7.0.0,2020-02-24 13:23 UTC,0.9,deprecated+quick_patch,261337841,24,2.55,6,8,11,18,24,1
+graceful-fs,3.0.0,2014-06-02 01:48 UTC,0.9,deprecated+quick_patch,161096183,1,7.09,0,1,1,1,1,1
+eslint,1.0.0,2015-07-31 17:19 UTC,0.9,deprecated+quick_patch,132905621,22,1.36,4,6,11,15,22,1
+eslint,2.0.0,2016-02-12 17:50 UTC,0.9,deprecated+quick_patch,132905621,41,0.32,6,9,17,24,41,1
+eslint,3.0.0,2016-07-01 18:08 UTC,0.9,deprecated+quick_patch,132905621,29,0.48,5,7,12,25,29,1
+eslint,4.0.0,2017-06-12 01:21 UTC,0.9,deprecated+quick_patch,132905621,79,1.31,5,15,29,55,79,1
