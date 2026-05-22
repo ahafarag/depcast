@@ -258,7 +258,7 @@ AWS Cloud & DevOps Engineer — Sopra Steria
 MSc Candidate, AI Research — Universidad Internacional Menéndez Pelayo (UIMP)
 Financial Engineering Program — WorldQuant University
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-connect-0A66C2?logo=linkedin&logoColor=white)](https://linkedin.com/in/ahafarag)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-connect-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/abdelrahman-farag-b1471221b/)
 [![GitHub](https://img.shields.io/badge/GitHub-ahafarag-181717?logo=github&logoColor=white)](https://github.com/ahafarag)
 
 ---
