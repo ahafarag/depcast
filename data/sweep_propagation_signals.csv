@@ -9,3 +9,13 @@ eslint,1.0.0,2015-07-31 17:19 UTC,0.9,deprecated+quick_patch,132905621,22,1.36,4
 eslint,2.0.0,2016-02-12 17:50 UTC,0.9,deprecated+quick_patch,132905621,41,0.32,6,9,17,24,41,1
 eslint,3.0.0,2016-07-01 18:08 UTC,0.9,deprecated+quick_patch,132905621,29,0.48,5,7,12,25,29,1
 eslint,4.0.0,2017-06-12 01:21 UTC,0.9,deprecated+quick_patch,132905621,79,1.31,5,15,29,55,79,1
+eslint,5.0.0,2018-06-23 02:40 UTC,0.9,deprecated+quick_patch,132905621,110,0.58,3,13,32,78,110,1
+eslint,6.0.0,2019-06-22 03:01 UTC,0.9,deprecated+quick_patch,132905621,152,0.13,46,53,109,148,152,1
+eslint,7.0.0,2020-05-08 18:51 UTC,0.9,deprecated+quick_patch,132905621,120,0.05,9,13,28,49,120,1
+eslint,8.0.0,2021-10-09 20:46 UTC,0.9,deprecated+quick_patch,132905621,72,0.89,3,10,19,40,72,1
+express,1.0.0,2010-12-29 19:38 UTC,0.9,deprecated+quick_patch,105166397,5,2.71,1,1,1,4,5,1
+express,2.0.0,2011-03-18 01:06 UTC,0.9,deprecated+quick_patch,105166397,6,15.5,0,0,1,2,6,1
+express,3.0.0,2012-10-23 22:30 UTC,0.9,deprecated+quick_patch,105166397,7,20.59,0,0,3,6,7,1
+tar,2.0.0,2015-03-27 01:45 UTC,0.9,deprecated+quick_patch,81073093,20,9.33,0,2,7,15,20,1
+tar,4.0.0,2017-08-18 22:24 UTC,0.9,deprecated+quick_patch,81073093,19,4.51,1,4,6,11,19,1
+tar,6.0.0,2020-01-28 01:46 UTC,0.9,deprecated+quick_patch,81073093,33,0.08,4,9,18,27,33,1
