@@ -36,13 +36,14 @@ import os
 os.makedirs("data", exist_ok=True)
 os.makedirs("figures", exist_ok=True)
 
-RELEASES_FILE   = "data/breaking_releases.csv"
-VOLATILITY_FILE = "data/api_volatility.csv"
-SIGNALS_FILE    = "data/propagation_signals.csv"
-CI_SIGNALS_FILE = "data/ci_signals.csv"
-SIR_FILE        = "data/sir_model_results.csv"
-OUTPUT_CSV      = "data/crs_scores.csv"
-OUTPUT_FIG      = "figures/crs_validation.png"
+RELEASES_FILE    = "data/breaking_releases.csv"
+CONTROLS_FILE    = "data/nonbreaking_releases.csv"   # Phase 2 negative class
+VOLATILITY_FILE  = "data/api_volatility.csv"
+SIGNALS_FILE     = "data/propagation_signals.csv"
+CI_SIGNALS_FILE  = "data/ci_signals.csv"
+SIR_FILE         = "data/sir_model_results.csv"
+OUTPUT_CSV       = "data/crs_scores.csv"
+OUTPUT_FIG       = "figures/crs_validation_v2.png"
 
 def normalize(series):
     """Normalize a pandas series to [0,1]."""
@@ -75,7 +76,7 @@ def build_features(df):
     #   2. Bot PR rejection rate    (script 03b: proxy — closed PRs imply CI failure)
     #   3. GitHub issue rate at 24h (script 03: keyword search)
     #   4. npm publisher signals    (script 03b: works for ALL release ages, no token)
-    #   5. Default 0.3
+    #   5. Default 0.0  (conservative: no signal = no observed failure)
     # Applied per-release: each row uses the highest-priority available signal.
 
     has_checks = (
@@ -98,7 +99,7 @@ def build_features(df):
     )
 
     # Build per-release D(t) from the best available source for each row
-    D_t = pd.Series(0.3, index=df.index)  # default
+    D_t = pd.Series(0.0, index=df.index)  # default: no signal = no observed failure
 
     if has_npm:
         # npm_sig is naturally in [0,1]: is_deprecated (0/1) + quick_patch (0/0.5), clipped.
@@ -153,12 +154,28 @@ def main():
 
     if os.path.exists(RELEASES_FILE):
         releases = pd.read_csv(RELEASES_FILE)
-        dfs.append(releases)
-        print(f"Loaded releases:     {len(releases)} rows")
+        print(f"Loaded releases:     {len(releases)} rows  (label_breaking=1)")
     else:
         print(f"WARNING: {RELEASES_FILE} not found — using demo data")
         releases = create_demo_releases()
-        dfs.append(releases)
+
+    # ── Load non-breaking controls (Phase 2 negative class) ──
+    if os.path.exists(CONTROLS_FILE):
+        controls = pd.read_csv(CONTROLS_FILE)
+        # Drop columns not used for modelling.
+        # is_deprecated / quick_patch from script 06 reflect CURRENT npm state,
+        # not release-time signals — dropping them prevents stale deprecations
+        # from inflating D(t) for non-breaking controls.
+        drop_cols = [c for c in (
+            "issues_72h_github", "suspect", "verified",
+            "is_deprecated", "quick_patch"
+        ) if c in controls.columns]
+        controls = controls.drop(columns=drop_cols)
+        print(f"Loaded controls:     {len(controls)} rows  (label_breaking=0)")
+        releases = pd.concat([releases, controls], ignore_index=True, sort=False)
+        print(f"Combined dataset:    {len(releases)} rows")
+    else:
+        print(f"INFO: {CONTROLS_FILE} not found — running on breaking releases only")
 
     df = releases.copy()
 
@@ -286,130 +303,178 @@ def main():
 
 def generate_figure(df, learned_weights, auc_cv):
     """Generate CRS validation figure for the paper."""
-    fig = plt.figure(figsize=(16, 14))
+    has_controls = "label_breaking" in df.columns and (df["label_breaking"] == 0).any()
+    breaking  = df[df["label_breaking"] == 1] if "label_breaking" in df.columns else df
+    controls  = df[df["label_breaking"] == 0] if has_controls else pd.DataFrame()
+
+    fig = plt.figure(figsize=(16, 16))
     fig.patch.set_facecolor('#FAFAFA')
+
+    auc_str = f"  |  AUC-ROC = {auc_cv:.3f}" if auc_cv else ""
+    n_str   = f"n={len(breaking)} breaking, n={len(controls)} non-breaking" if has_controls else f"n={len(breaking)} breaking"
     fig.suptitle(
-        "DepCast Phase 1: Compatibility Risk Score (CRS) Analysis\n"
-        "CRS(t) = w₁·V(r) + w₂·E(r) + w₃·D(t) + w₄·H(m)",
-        fontsize=14, fontweight='bold', color='#1F4E79', y=0.99
+        f"DepCast: Compatibility Risk Score (CRS) Validation\n"
+        f"CRS(t) = w₁·V(r) + w₂·E(r) + w₃·D(t) + w₄·H(m)   "
+        f"[{n_str}{auc_str}]",
+        fontsize=13, fontweight='bold', color='#1F4E79', y=0.995
     )
 
-    gs = gridspec.GridSpec(3, 2, hspace=0.45, wspace=0.35, figure=fig)
+    gs = gridspec.GridSpec(3, 2, hspace=0.48, wspace=0.35, figure=fig)
 
-    # Panel A: CRS distribution by package
+    # ── Panel A: CRS bar chart — breaking (solid) vs controls (hatched) ──
     ax1 = fig.add_subplot(gs[0, :])
     ax1.set_facecolor('#F8F9FA')
-    ax1.set_title("Panel A — CRS Score per Breaking Release (sorted)", 
+    ax1.set_title("Panel A — CRS Score per Release: Breaking (solid) vs Non-Breaking (hatched)",
                   fontsize=11, fontweight='bold', color='#2E75B6', pad=8)
 
-    df_sorted = df.sort_values("CRS_equal", ascending=False).reset_index(drop=True)
-    colors_bar = df_sorted["CRS_rating"].map({"AVOID": "#C00000", "WAIT": "#FFC000", "SAFE": "#375623"})
-    bars = ax1.bar(range(len(df_sorted)), df_sorted["CRS_equal"],
-                  color=colors_bar, edgecolor='white', linewidth=0.3, alpha=0.85)
+    b_sorted = breaking.sort_values("CRS_equal", ascending=False).reset_index(drop=True)
+    c_sorted = controls.sort_values("CRS_equal", ascending=False).reset_index(drop=True) if has_controls else pd.DataFrame()
+
+    rating_color = {"AVOID": "#C00000", "WAIT": "#FFC000", "SAFE": "#375623"}
+
+    # Breaking bars (left section)
+    for i, row in b_sorted.iterrows():
+        c = rating_color.get(row["CRS_rating"], "#888888")
+        ax1.bar(i, row["CRS_equal"], color=c, edgecolor='white', linewidth=0.3, alpha=0.85)
+
+    # Control bars (right section, hatched, grey tones)
+    offset = len(b_sorted) + 2
+    if has_controls:
+        for i, row in c_sorted.iterrows():
+            ax1.bar(offset + i, row["CRS_equal"], color='#AAAAAA',
+                    edgecolor='#555555', linewidth=0.5, alpha=0.6, hatch='//')
 
     ax1.axhline(y=0.25, color='#375623', linestyle='--', linewidth=1.5, alpha=0.7, label='SAFE threshold (0.25)')
     ax1.axhline(y=0.60, color='#C00000', linestyle='--', linewidth=1.5, alpha=0.7, label='AVOID threshold (0.60)')
+    if has_controls:
+        ax1.axvline(x=len(b_sorted) + 0.5, color='navy', linestyle=':', linewidth=1.5, alpha=0.6)
+        ax1.text(len(b_sorted) / 2, 1.02, 'Breaking releases',
+                ha='center', fontsize=9, color='#C00000', style='italic')
+        ax1.text(offset + len(c_sorted) / 2, 1.02, 'Non-breaking controls',
+                ha='center', fontsize=9, color='#555555', style='italic')
 
-    ax1.set_xlabel("Releases (sorted by CRS)", fontsize=10)
+    ax1.set_xlabel("Releases (sorted by CRS within each class)", fontsize=10)
     ax1.set_ylabel("CRS Score", fontsize=10)
-    ax1.set_ylim(0, 1.05)
-    ax1.legend(fontsize=9)
+    ax1.set_ylim(0, 1.12)
+    ax1.legend(fontsize=9, loc='upper right')
     ax1.grid(True, alpha=0.3, axis='y')
 
-    # Label every 5th bar
-    for i, (_, row) in enumerate(df_sorted.iterrows()):
-        if i % 5 == 0 or i == len(df_sorted)-1:
-            ax1.text(i, row["CRS_equal"] + 0.02,
-                    f'{row["package"][:8]}',
-                    ha='center', va='bottom', fontsize=6, rotation=45, color='#333333')
-
-    # Panel B: Feature contribution breakdown
+    # ── Panel B: Feature means — breaking vs controls ──
     ax2 = fig.add_subplot(gs[1, 0])
     ax2.set_facecolor('#F8F9FA')
-    ax2.set_title("Panel B — Feature Contributions to CRS", 
+    ax2.set_title("Panel B — Feature Means: Breaking vs Non-Breaking",
                   fontsize=11, fontweight='bold', color='#2E75B6', pad=8)
 
-    features = ["V_r", "E_r", "D_t", "H_m"]
-    feature_labels = ["V(r)\nAPI Volatility", "E(r)\nExposure", "D(t)\nFailure Rate", "H(m)\nHistory"]
-    means = [df[f].mean() for f in features]
-    stds  = [df[f].std()  for f in features]
-    feat_colors = ['#2E75B6', '#70AD47', '#FF6B35', '#9E3E8D']
+    features       = ["V_r", "E_r", "D_t", "H_m"]
+    feature_labels = ["V(r)\nVolatility", "E(r)\nExposure", "D(t)\nFailure", "H(m)\nHistory"]
+    x = np.arange(len(features))
+    w = 0.35
 
-    bars2 = ax2.bar(feature_labels, means, color=feat_colors, alpha=0.8,
-                   edgecolor='white', yerr=stds, capsize=5)
+    b_means = [breaking[f].mean() for f in features]
+    c_means = [controls[f].mean() if has_controls else 0 for f in features]
+
+    ax2.bar(x - w/2, b_means, w, label='Breaking',     color='#C00000', alpha=0.8)
+    if has_controls:
+        ax2.bar(x + w/2, c_means, w, label='Non-breaking', color='#AAAAAA', alpha=0.7, hatch='//')
+
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(feature_labels, fontsize=9)
     ax2.set_ylabel("Mean normalized value [0,1]", fontsize=10)
-    ax2.set_ylim(0, 1.1)
+    ax2.set_ylim(0, 1.05)
+    ax2.legend(fontsize=9)
     ax2.grid(True, alpha=0.3, axis='y')
 
-    for bar, mean in zip(bars2, means):
-        ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.03,
-                f'{mean:.3f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
-
     if learned_weights:
-        ax2.set_title("Panel B — Feature Contributions (learned weights)", 
-                     fontsize=11, fontweight='bold', color='#2E75B6', pad=8)
-        for bar, feat in zip(bars2, features):
-            w = learned_weights.get(feat, 0.25)
-            ax2.text(bar.get_x() + bar.get_width()/2, -0.08,
-                    f'w={w:.3f}', ha='center', fontsize=8, color='gray')
+        for i, feat in enumerate(features):
+            w_val = learned_weights.get(feat, 0.25)
+            ax2.text(x[i], -0.12, f'w={w_val:.3f}', ha='center', fontsize=8, color='gray')
+        ax2.set_title("Panel B — Feature Means + Learned Weights",
+                      fontsize=11, fontweight='bold', color='#2E75B6', pad=8)
 
-    # Panel C: CRS vs first_issue_hours scatter
+    # ── Panel C: ROC curve (if AUC available) else CRS vs time-to-issue ──
     ax3 = fig.add_subplot(gs[1, 1])
     ax3.set_facecolor('#F8F9FA')
-    ax3.set_title("Panel C — CRS vs. Time to First Issue", 
-                  fontsize=11, fontweight='bold', color='#2E75B6', pad=8)
 
-    valid = df.dropna(subset=["first_issue_hours"])
-    if len(valid) > 0:
-        scatter_colors = valid["CRS_rating"].map({"AVOID":"#C00000","WAIT":"#FFC000","SAFE":"#375623"})
-        sc = ax3.scatter(valid["CRS_equal"], valid["first_issue_hours"],
-                        c=scatter_colors, s=80, alpha=0.7, edgecolors='white', linewidth=0.5)
-        ax3.set_xlabel("CRS Score", fontsize=10)
-        ax3.set_ylabel("Time to first issue (hours)", fontsize=10)
-        ax3.axvline(x=0.25, color='gray', linestyle=':', alpha=0.5)
-        ax3.axvline(x=0.60, color='gray', linestyle=':', alpha=0.5)
+    if has_controls and auc_cv is not None:
+        # ROC curve on full dataset
+        from sklearn.metrics import roc_curve as sk_roc
+        y_true  = df["label_breaking"].fillna(1).astype(int).values
+        y_score = df["CRS_equal"].fillna(0).values
+        fpr, tpr, _ = sk_roc(y_true, y_score)
+        ax3.plot(fpr, tpr, color='#C00000', lw=2, label=f'CRS (AUC = {auc_cv:.3f})')
+        ax3.plot([0, 1], [0, 1], 'k--', lw=1, alpha=0.5, label='Random')
+        ax3.fill_between(fpr, tpr, alpha=0.08, color='#C00000')
+        ax3.set_xlabel("False Positive Rate", fontsize=10)
+        ax3.set_ylabel("True Positive Rate", fontsize=10)
+        ax3.set_title("Panel C — ROC Curve (Breaking vs Non-Breaking)",
+                      fontsize=11, fontweight='bold', color='#2E75B6', pad=8)
+        ax3.legend(fontsize=9)
         ax3.grid(True, alpha=0.3)
-
-        # Correlation
-        corr = valid[["CRS_equal","first_issue_hours"]].corr().iloc[0,1]
-        ax3.text(0.05, 0.95, f'r = {corr:.3f}', transform=ax3.transAxes,
-                fontsize=10, va='top', color='#1F4E79')
-        ax3.invert_yaxis()  # Lower hours = faster propagation
+        auc_color = '#375623' if auc_cv >= 0.7 else '#FFC000' if auc_cv >= 0.6 else '#C00000'
+        ax3.text(0.6, 0.12, f'AUC = {auc_cv:.3f}', transform=ax3.transAxes,
+                fontsize=14, fontweight='bold', color=auc_color)
     else:
-        ax3.text(0.5, 0.5, "No timing data available\n(run script 03 with GitHub token)",
-                transform=ax3.transAxes, ha='center', va='center', color='gray')
+        # Fallback: CRS vs time to first issue
+        ax3.set_title("Panel C — CRS vs. Time to First Issue",
+                      fontsize=11, fontweight='bold', color='#2E75B6', pad=8)
+        valid = df.dropna(subset=["first_issue_hours"])
+        if len(valid) > 0:
+            sc_c = valid["CRS_rating"].map({"AVOID": "#C00000", "WAIT": "#FFC000", "SAFE": "#375623"})
+            ax3.scatter(valid["CRS_equal"], valid["first_issue_hours"],
+                       c=sc_c, s=80, alpha=0.7, edgecolors='white', linewidth=0.5)
+            ax3.set_xlabel("CRS Score", fontsize=10)
+            ax3.set_ylabel("Hours to first issue", fontsize=10)
+            ax3.invert_yaxis()
+            corr = valid[["CRS_equal", "first_issue_hours"]].corr().iloc[0, 1]
+            ax3.text(0.05, 0.95, f'r = {corr:.3f}', transform=ax3.transAxes,
+                    fontsize=10, va='top', color='#1F4E79')
+            ax3.grid(True, alpha=0.3)
+        else:
+            ax3.text(0.5, 0.5, "Run script 03 with --token to populate",
+                    transform=ax3.transAxes, ha='center', va='center', color='gray')
 
-    # Panel D: Rating distribution pie
+    # ── Panel D: CRS score distribution histogram — breaking vs controls ──
     ax4 = fig.add_subplot(gs[2, 0])
     ax4.set_facecolor('#F8F9FA')
-    ax4.set_title("Panel D — SAFE / WAIT / AVOID Distribution", 
+    ax4.set_title("Panel D — CRS Score Distribution by Class",
                   fontsize=11, fontweight='bold', color='#2E75B6', pad=8)
 
-    rating_counts = df["CRS_rating"].value_counts()
-    pie_colors = {"AVOID": "#C00000", "WAIT": "#FFC000", "SAFE": "#375623"}
-    pie_c = [pie_colors.get(r, '#888888') for r in rating_counts.index]
-    wedges, texts, autotexts = ax4.pie(
-        rating_counts.values, labels=rating_counts.index, colors=pie_c,
-        autopct='%1.1f%%', startangle=90, pctdistance=0.75
-    )
-    for t in autotexts:
-        t.set_fontsize(11)
-        t.set_fontweight('bold')
+    bins = np.linspace(0, 1, 21)
+    ax4.hist(breaking["CRS_equal"], bins=bins, alpha=0.7, color='#C00000',
+             label=f'Breaking (n={len(breaking)})', density=True)
+    if has_controls:
+        ax4.hist(controls["CRS_equal"], bins=bins, alpha=0.5, color='#AAAAAA',
+                 label=f'Non-breaking (n={len(controls)})', density=True, hatch='//')
+    ax4.axvline(x=0.25, color='#375623', linestyle='--', linewidth=1.5, alpha=0.7)
+    ax4.axvline(x=0.60, color='#C00000', linestyle='--', linewidth=1.5, alpha=0.7)
+    ax4.set_xlabel("CRS Score", fontsize=10)
+    ax4.set_ylabel("Density", fontsize=10)
+    ax4.legend(fontsize=9)
+    ax4.grid(True, alpha=0.3, axis='y')
 
-    # Panel E: CRS heatmap — top 15 packages
+    # Separation annotation
+    if has_controls:
+        b_med = breaking["CRS_equal"].median()
+        c_med = controls["CRS_equal"].median()
+        ax4.text(0.05, 0.92,
+                f'Median breaking:     {b_med:.3f}\nMedian non-breaking: {c_med:.3f}',
+                transform=ax4.transAxes, fontsize=8, va='top',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
+
+    # ── Panel E: Feature heatmap — top 15 breaking releases ──
     ax5 = fig.add_subplot(gs[2, 1])
     ax5.set_facecolor('#F8F9FA')
-    ax5.set_title("Panel E — Feature Heatmap (Top 15 by CRS)", 
+    ax5.set_title("Panel E — Feature Heatmap (Top 15 Breaking by CRS)",
                   fontsize=11, fontweight='bold', color='#2E75B6', pad=8)
 
-    top15 = df.nlargest(15, "CRS_equal")
-    heatmap_data = top15[["V_r","E_r","D_t","H_m"]].values
-    labels_y = [f'{r["package"][:12]}@{str(r["breaking_version"])[:5]}' 
+    top15 = breaking.nlargest(15, "CRS_equal")
+    heatmap_data = top15[["V_r", "E_r", "D_t", "H_m"]].values
+    labels_y = [f'{r["package"][:12]}@{str(r["breaking_version"])[:5]}'
                 for _, r in top15.iterrows()]
 
     im = ax5.imshow(heatmap_data, aspect='auto', cmap='RdYlGn_r', vmin=0, vmax=1)
-    ax5.set_xticks([0,1,2,3])
-    ax5.set_xticklabels(["V(r)","E(r)","D(t)","H(m)"], fontsize=10)
+    ax5.set_xticks([0, 1, 2, 3])
+    ax5.set_xticklabels(["V(r)", "E(r)", "D(t)", "H(m)"], fontsize=10)
     ax5.set_yticks(range(len(labels_y)))
     ax5.set_yticklabels(labels_y, fontsize=7)
     plt.colorbar(im, ax=ax5, fraction=0.046, pad=0.04)
