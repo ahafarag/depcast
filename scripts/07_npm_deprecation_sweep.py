@@ -24,10 +24,17 @@ RUNTIME: ~2–4 hours (network-bound, no GitHub token needed)
 RESUMABLE: saves incrementally; use --resume to skip already-processed packages
 
 HOW TO RUN:
+  # Default: npm search API (biased toward quality score, not downloads)
   python scripts/07_npm_deprecation_sweep.py
-  python scripts/07_npm_deprecation_sweep.py --max-packages 5000
-  python scripts/07_npm_deprecation_sweep.py --resume
-  python scripts/07_npm_deprecation_sweep.py --max-packages 1000 --min-downloads 50000
+
+  # Recommended: seed from known top-downloaded packages list
+  python scripts/07_npm_deprecation_sweep.py --seed-file data/top_npm_seed.txt
+
+  # Resume an interrupted run
+  python scripts/07_npm_deprecation_sweep.py --seed-file data/top_npm_seed.txt --resume
+
+  # Tune thresholds
+  python scripts/07_npm_deprecation_sweep.py --seed-file data/top_npm_seed.txt --min-downloads 50000
 """
 
 import requests
@@ -50,8 +57,13 @@ HIGH_EXPOSURE_THRESHOLD = 1_000_000  # include major bumps even without signals
 
 def parse_args():
     p = argparse.ArgumentParser()
+    p.add_argument("--seed-file", type=str, default=None,
+                   help="Path to a text file with one package name per line "
+                        "(e.g. data/top_npm_seed.txt). When provided, skips the "
+                        "npm search API and uses this list instead — recommended "
+                        "for unbiased coverage of top-downloaded packages.")
     p.add_argument("--max-packages", type=int, default=3000,
-                   help="Maximum number of npm packages to scan (default: 3000)")
+                   help="Maximum packages to scan when using search API (ignored with --seed-file)")
     p.add_argument("--min-downloads", type=int, default=MIN_DOWNLOADS_DEFAULT,
                    help="Minimum weekly downloads to consider a package (default: 10000)")
     p.add_argument("--resume", action="store_true",
@@ -347,7 +359,8 @@ def main():
     print(f"\n{'='*60}")
     print("DepCast Phase 2a — npm Deprecation Sweep (Path A)")
     print(f"{'='*60}")
-    print(f"Max packages  : {args.max_packages:,}")
+    print(f"Seed file     : {args.seed_file or 'npm search API (biased)'}")
+    print(f"Max packages  : {args.max_packages:,}  (ignored if --seed-file used)")
     print(f"Min downloads : {args.min_downloads:,}/week")
     print(f"Patch window  : {args.patch_window} days")
     print(f"Resume mode   : {args.resume}")
@@ -366,8 +379,23 @@ def main():
         print(f"Resuming: {len(existing_candidates)} candidates already found\n")
 
     # ── Step 1: collect package list ──
-    print("Step 1: Collecting popular packages from npm search...")
-    raw_packages = fetch_popular_packages(args.max_packages, args.min_downloads)
+    if args.seed_file:
+        print(f"Step 1: Loading packages from seed file: {args.seed_file}")
+        if not os.path.exists(args.seed_file):
+            print(f"ERROR: seed file not found: {args.seed_file}")
+            return
+        raw_names = []
+        with open(args.seed_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    raw_names.append(line)
+        raw_packages = [(n, 0) for n in raw_names]
+        print(f"  Loaded {len(raw_packages)} packages from seed file")
+    else:
+        print("Step 1: Collecting popular packages from npm search API...")
+        print("  TIP: use --seed-file data/top_npm_seed.txt for unbiased coverage")
+        raw_packages = fetch_popular_packages(args.max_packages, args.min_downloads)
 
     # ── Step 2: get accurate download counts in bulk ──
     print("\nStep 2: Fetching weekly download counts in bulk...")
