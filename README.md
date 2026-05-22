@@ -268,7 +268,7 @@ Financial Engineering Program — WorldQuant University
 
 <div align="center">
 
-If DepCast is useful for your research, saved you debugging time, or you want to support the ongoing work — every contribution helps fund the next phase.
+If DepCast saved you debugging time or is useful for your research, consider supporting the ongoing work.
 
 <br>
 
