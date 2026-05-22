@@ -27,3 +27,6 @@ Thumbs.db
 secrets.txt
 
 data/deprecation_sweep_progress.json
+
+*.tar.gz
+*.zip
