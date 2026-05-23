@@ -40,6 +40,7 @@ RELEASES_FILE    = "data/breaking_releases.csv"
 CONTROLS_FILE    = "data/nonbreaking_releases.csv"   # Phase 2 negative class
 VOLATILITY_FILE  = "data/api_volatility.csv"
 SIGNALS_FILE     = "data/propagation_signals.csv"
+SWEEP_SIGNALS    = "data/sweep_propagation_signals.csv"  # Phase 2 sweep candidates
 CI_SIGNALS_FILE  = "data/ci_signals.csv"
 SIR_FILE         = "data/sir_model_results.csv"
 OUTPUT_CSV       = "data/crs_scores.csv"
@@ -158,6 +159,27 @@ def main():
     else:
         print(f"WARNING: {RELEASES_FILE} not found — using demo data")
         releases = create_demo_releases()
+
+    # ── Load Phase 2 sweep candidates (high-confidence, pre-release filtered) ──
+    if os.path.exists(SWEEP_SIGNALS):
+        sweep = pd.read_csv(SWEEP_SIGNALS)
+        # Rename breaking_version col to match merge keys downstream
+        sweep = sweep.rename(columns={"breaking_version": "breaking_version"})
+        # Add required columns with defaults for rows not in original 51
+        for col in ["prior_stable_version", "description", "weekly_downloads",
+                    "dependent_count", "has_changelog", "notes"]:
+            if col not in sweep.columns:
+                sweep[col] = None
+        sweep["label_breaking"] = 1
+        # Merge issue counts into releases as issues_24h / issues_72h
+        sweep = sweep.rename(columns={
+            "issues_6h":  "issues_6h",
+            "issues_24h": "issues_24h",
+            "issues_72h": "issues_72h",
+        })
+        releases = pd.concat([releases, sweep], ignore_index=True, sort=False)
+        print(f"Loaded sweep signals: {len(sweep)} rows  (label_breaking=1)")
+        print(f"Combined breaking:    {len(releases)} rows")
 
     # ── Load non-breaking controls (Phase 2 negative class) ──
     if os.path.exists(CONTROLS_FILE):
