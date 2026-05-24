@@ -8,9 +8,10 @@
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
 [![Status](https://img.shields.io/badge/status-active%20research-orange.svg)]()
 [![Target](https://img.shields.io/badge/target-MSR%202027-blueviolet.svg)]()
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20360607-blue.svg)](https://zenodo.org/records/20360607)
 [![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/ahafarag)
 
-*Farag, A. (2026). DepCast: A Two-Sided Compatibility Intelligence Protocol for Software Package Ecosystems. Research Position Paper v0.5.*
+*Farag, A. (2026). DepCast: Early Detection of Breaking npm Package Releases via Compatibility Risk Scoring and Epidemiological Propagation Modelling. Zenodo. https://doi.org/10.5281/zenodo.20360607*
 
 </div>
 
