@@ -1,41 +1,41 @@
 package,breaking_version,prior_stable_version,published_at,description,weekly_downloads,dependent_count,has_changelog,notes,label_breaking,is_deprecated,quick_patch,issues_72h_github,suspect,verified
-cross-env,7.0.0,6.0.1,2020-01-25T18:40:06.324+0,Pure maintenance; no functional changes,19011586,97397,0,changelog: no functional changes,0,0,0,-1,0,0
-nodemon,2.0.0,1.19.4,2019-11-20T15:24:59.854+0,Dropped Node.js 8; config unchanged,12826722,0,0,config format stable; low issue count,0,0,0,-1,0,0
-dotenv,8.0.0,7.0.0,2019-05-02T22:28:49.003+0,Added debug option; no API changes,135532044,0,0,additive only; no deprecations,0,0,0,-1,0,0
-commander,6.0.0,5.1.0,2020-07-19T14:01:31.919+0,Added features; no API removals,412840457,0,0,no removals per CHANGELOG.md,0,0,0,-1,0,0
-minimatch,3.0.0,2.0.10,2015-09-27T18:18:59.997+0,Bugfix-focused major bump,609630883,0,0,API identical to 2.x,0,1,0,-1,1,0
-inquirer,7.0.0,6.5.2,2019-08-23T03:31:06.088+0,TypeScript types added; API unchanged,45731458,0,0,no API removals; types-only addition,0,0,0,-1,0,0
-ora,4.0.0,3.7.0,2019-09-22T08:58:33.550+0,Spinner improvements; API stable,69898396,0,0,backward compatible per changelog,0,0,0,-1,0,0
-chai,4.0.0,3.5.0,2017-05-26T10:31:36.905+0,Assertion API stable; plugin compat,75417340,0,0,assert/expect/should APIs unchanged,0,0,0,-1,0,0
-sinon,8.0.0,7.5.0,2019-12-22T16:11:55.264+0,Stubs API stable; type improvements,11084231,0,0,no API removals in changelog,0,1,0,-1,1,0
-nock,12.0.0,11.9.1,2020-02-16T21:03:56.039+0,TypeScript rewrite; public API unchanged,6367715,0,0,API-compatible rewrite,0,0,0,-1,0,0
-supertest,5.0.0,4.0.2,2020-09-25T13:29:20.869+0,Minor update; backward compatible,14590675,0,0,test API unchanged,0,1,0,-1,1,0
-nyc,13.0.0,12.0.2,2018-06-08T00:54:33.551+0,Istanbul v2 integration; transparent,7940504,0,0,config format stable for most users,0,0,0,-1,0,0
-execa,4.0.0,3.4.0,2019-12-19T09:49:46.049+0,Added options; no removals,136885395,0,0,additive only,0,0,0,-1,0,0
-fast-glob,3.0.0,2.2.7,2019-06-16T18:13:24.079+0,Performance improvements; API stable,141092420,8176,0,no breaking changes per changelog,0,0,0,-1,0,0
-chokidar,3.0.0,2.1.8,2019-04-30T16:52:43.801+0,Rewrote FSEvents binding; API stable,178019382,0,0,API identical to 2.x for most users,0,0,0,-1,0,0
-glob,7.0.0,6.0.4,2016-02-10T19:27:17.967+0,Minor refactor; API stable,353879984,0,0,stable API; glob@7 was long-lived LTS,0,1,0,-1,1,0
-async,3.0.0,2.6.3,2019-05-20T02:27:54.697+0,ESM added; CJS callback API preserved,90906140,0,0,CJS compat maintained alongside ESM,0,0,0,-1,0,0
-debug,4.0.0,3.2.7,2018-09-11T08:58:14.825+0,Namespace format stable; API unchanged,611370945,0,0,debug('ns') API identical,0,1,0,-1,1,0
-ms,2.0.0,1.0.0,2017-05-16T12:26:06.610+0,Additive: added more time units,461306534,0,0,no removals; parseonly extended,0,0,0,-1,0,0
-mime,3.0.0,2.6.0,2021-11-03T00:50:48.131+0,ESM-only; API identical,124236248,1,0,define/lookup API preserved,0,0,0,-1,0,0
-p-queue,7.0.0,6.6.2,2021-03-31T06:44:09.019+0,ESM-only; same class API,25914975,14224,0,Queue API identical,0,0,0,-1,0,0
-leven,4.0.0,3.1.0,2021-08-10T12:17:03.365+0,ESM-only; single function export,53995640,0,0,export signature unchanged,0,0,0,-1,0,0
-strip-ansi,7.0.0,6.0.1,2021-04-16T06:08:05.929+0,ESM-only; single function export,486120072,2390,0,identical API,0,0,0,-1,0,0
-ansi-regex,6.0.0,5.0.1,2021-04-16T06:02:15.282+0,ESM-only; regex export unchanged,451010036,8755,0,same regex output,0,0,0,-1,0,0
-is-stream,3.0.0,2.0.1,2021-08-10T10:52:14.251+0,ESM-only; small package; smooth,156579210,31799,0,isStream() API preserved,0,0,0,-1,0,0
-pretty-bytes,6.0.0,5.6.0,2022-02-13T18:17:05.542+0,ESM-only; function API unchanged,27693260,11982,0,prettyBytes() signature preserved,0,0,0,-1,0,0
-filesize,10.0.0,9.0.0,2022-09-28T11:36:29.056+0,ESM-only; additive options,17572662,0,0,filesize() signature preserved,0,0,0,-1,0,0
-boxen,7.0.0,6.2.1,2022-06-13T08:06:40.977+0,ESM-only; box rendering API stable,25265920,0,0,boxen() API preserved,0,0,0,-1,0,0
-string-length,6.0.0,5.0.1,2023-06-04T08:35:56.366+0,ESM-only; single function,46772191,23912,0,stringLength() API preserved,0,0,0,-1,0,0
-camelcase,8.0.0,7.0.0,2023-08-09T16:37:55.548+0,ESM-only; single function,154639640,0,0,camelCase() API preserved,0,0,0,-1,0,0
-decamelize,6.0.0,5.0.1,2021-10-01T02:34:23.156+0,ESM-only; single function,57918847,0,0,decamelize() API preserved,0,0,0,-1,0,0
-escape-string-regexp,5.0.0,4.0.0,2021-04-17T15:45:50.334+0,ESM-only; single function,296022320,400396,0,escapeStringRegexp() preserved,0,0,0,-1,0,0
-get-port,7.0.0,6.1.2,2023-06-04T13:10:47.806+0,ESM-only; API unchanged,19328722,66137,0,getPort() API preserved,0,0,0,-1,0,0
-find-up,7.0.0,6.3.0,2023-11-16T12:22:36.533+0,ESM-only; async API unchanged,271611214,173353,0,findUp() API preserved,0,0,0,-1,0,0
-pkg-dir,7.0.0,6.0.0,2022-08-16T17:52:18.743+0,ESM-only; async function unchanged,84228602,23817,0,pkgDir() API preserved,0,0,0,-1,0,0
-unique-string,3.0.0,2.0.0,2021-04-05T08:20:51.892+0,ESM-only; single function,26226412,397880,0,uniqueString() API preserved,0,0,0,-1,0,0
-temp-dir,3.0.0,2.0.0,2022-09-26T05:28:19.727+0,ESM-only; exported string path unchanged,20022741,23817,0,same export shape,0,0,0,-1,0,0
-normalize-url,8.0.0,7.2.0,2022-11-04T08:18:35.032+0,ESM-only; normalizeUrl() API stable,42727546,164417,0,function signature preserved,0,0,0,-1,0,0
-repeat-string,2.0.0,1.6.1,unknown,Additive: handles edge-cases,21214634,397880,0,repeat() API preserved,0,0,0,-1,0,0
-is-plain-obj,4.0.0,3.0.0,2021-04-16T19:09:27.160+0,ESM-only; single predicate function,100528613,36349,0,isPlainObject() preserved,0,0,0,-1,0,0
+cross-env,7.0.0,6.0.1,2020-01-25T18:40:06.324+0,Pure maintenance; no functional changes,19011586,71440,0,changelog: no functional changes,0,0,0,-1,0,0
+nodemon,2.0.0,1.19.4,2019-11-20T15:24:59.854+0,Dropped Node.js 8; config unchanged,12826722,37648,0,config format stable; low issue count,0,0,0,-1,0,0
+dotenv,8.0.0,7.0.0,2019-05-02T22:28:49.003+0,Added debug option; no API changes,135532044,4920,0,additive only; no deprecations,0,0,0,-1,0,0
+commander,6.0.0,5.1.0,2020-07-19T14:01:31.919+0,Added features; no API removals,412840457,44736,0,no removals per CHANGELOG.md,0,0,0,-1,0,0
+minimatch,3.0.0,2.0.10,2015-09-27T18:18:59.997+0,Bugfix-focused major bump,609630883,15800,0,API identical to 2.x,0,1,0,-1,1,0
+inquirer,7.0.0,6.5.2,2019-08-23T03:31:06.088+0,TypeScript types added; API unchanged,45731458,30656,0,no API removals; types-only addition,0,0,0,-1,0,0
+ora,4.0.0,3.7.0,2019-09-22T08:58:33.550+0,Spinner improvements; API stable,69898396,147320,0,backward compatible per changelog,0,0,0,-1,0,0
+chai,4.0.0,3.5.0,2017-05-26T10:31:36.905+0,Assertion API stable; plugin compat,75417340,123840,0,assert/expect/should APIs unchanged,0,0,0,-1,0,0
+sinon,8.0.0,7.5.0,2019-12-22T16:11:55.264+0,Stubs API stable; type improvements,11084231,33184,0,no API removals in changelog,0,1,0,-1,1,0
+nock,12.0.0,11.9.1,2020-02-16T21:03:56.039+0,TypeScript rewrite; public API unchanged,6367715,14512,0,API-compatible rewrite,0,0,0,-1,0,0
+supertest,5.0.0,4.0.2,2020-09-25T13:29:20.869+0,Minor update; backward compatible,14590675,52600,0,test API unchanged,0,1,0,-1,1,0
+nyc,13.0.0,12.0.2,2018-06-08T00:54:33.551+0,Istanbul v2 integration; transparent,7940504,48992,0,config format stable for most users,0,0,0,-1,0,0
+execa,4.0.0,3.4.0,2019-12-19T09:49:46.049+0,Added options; no removals,136885395,18592,0,additive only,0,0,0,-1,0,0
+fast-glob,3.0.0,2.2.7,2019-06-16T18:13:24.079+0,Performance improvements; API stable,141092420,11940,0,no breaking changes per changelog,0,0,0,-1,0,0
+chokidar,3.0.0,2.1.8,2019-04-30T16:52:43.801+0,Rewrote FSEvents binding; API stable,178019382,28432,0,API identical to 2.x for most users,0,0,0,-1,0,0
+glob,7.0.0,6.0.4,2016-02-10T19:27:17.967+0,Minor refactor; API stable,353879984,110016,0,stable API; glob@7 was long-lived LTS,0,1,0,-1,1,0
+async,3.0.0,2.6.3,2019-05-20T02:27:54.697+0,ESM added; CJS callback API preserved,90906140,42544,0,CJS compat maintained alongside ESM,0,0,0,-1,0,0
+debug,4.0.0,3.2.7,2018-09-11T08:58:14.825+0,Namespace format stable; API unchanged,611370945,230144,0,debug('ns') API identical,0,1,0,-1,1,0
+ms,2.0.0,1.0.0,2017-05-16T12:26:06.610+0,Additive: added more time units,461306534,25328,0,no removals; parseonly extended,0,0,0,-1,0,0
+mime,3.0.0,2.6.0,2021-11-03T00:50:48.131+0,ESM-only; API identical,124236248,33104,0,define/lookup API preserved,0,0,0,-1,0,0
+p-queue,7.0.0,6.6.2,2021-03-31T06:44:09.019+0,ESM-only; same class API,25914975,4856,0,Queue API identical,0,0,0,-1,0,0
+leven,4.0.0,3.1.0,2021-08-10T12:17:03.365+0,ESM-only; single function export,53995640,20096,0,export signature unchanged,0,0,0,-1,0,0
+strip-ansi,7.0.0,6.0.1,2021-04-16T06:08:05.929+0,ESM-only; single function export,486120072,9040,0,identical API,0,0,0,-1,0,0
+ansi-regex,6.0.0,5.0.1,2021-04-16T06:02:15.282+0,ESM-only; regex export unchanged,451010036,5506,0,same regex output,0,0,0,-1,0,0
+is-stream,3.0.0,2.0.1,2021-08-10T10:52:14.251+0,ESM-only; small package; smooth,156579210,4152,0,isStream() API preserved,0,0,0,-1,0,0
+pretty-bytes,6.0.0,5.6.0,2022-02-13T18:17:05.542+0,ESM-only; function API unchanged,27693260,7136,0,prettyBytes() signature preserved,0,0,0,-1,0,0
+filesize,10.0.0,9.0.0,2022-09-28T11:36:29.056+0,ESM-only; additive options,17572662,7568,0,filesize() signature preserved,0,0,0,-1,0,0
+boxen,7.0.0,6.2.1,2022-06-13T08:06:40.977+0,ESM-only; box rendering API stable,25265920,2692,0,boxen() API preserved,0,0,0,-1,0,0
+string-length,6.0.0,5.0.1,2023-06-04T08:35:56.366+0,ESM-only; single function,46772191,2400,0,stringLength() API preserved,0,0,0,-1,0,0
+camelcase,8.0.0,7.0.0,2023-08-09T16:37:55.548+0,ESM-only; single function,154639640,17168,0,camelCase() API preserved,0,0,0,-1,0,0
+decamelize,6.0.0,5.0.1,2021-10-01T02:34:23.156+0,ESM-only; single function,57918847,1464,0,decamelize() API preserved,0,0,0,-1,0,0
+escape-string-regexp,5.0.0,4.0.0,2021-04-17T15:45:50.334+0,ESM-only; single function,296022320,5320,0,escapeStringRegexp() preserved,0,0,0,-1,0,0
+get-port,7.0.0,6.1.2,2023-06-04T13:10:47.806+0,ESM-only; API unchanged,19328722,5600,0,getPort() API preserved,0,0,0,-1,0,0
+find-up,7.0.0,6.3.0,2023-11-16T12:22:36.533+0,ESM-only; async API unchanged,271611214,5200,0,findUp() API preserved,0,0,0,-1,0,0
+pkg-dir,7.0.0,6.0.0,2022-08-16T17:52:18.743+0,ESM-only; async function unchanged,84228602,4224,0,pkgDir() API preserved,0,0,0,-1,0,0
+unique-string,3.0.0,2.0.0,2021-04-05T08:20:51.892+0,ESM-only; single function,26226412,1538,0,uniqueString() API preserved,0,0,0,-1,0,0
+temp-dir,3.0.0,2.0.0,2022-09-26T05:28:19.727+0,ESM-only; exported string path unchanged,20022741,2612,0,same export shape,0,0,0,-1,0,0
+normalize-url,8.0.0,7.2.0,2022-11-04T08:18:35.032+0,ESM-only; normalizeUrl() API stable,42727546,3964,0,function signature preserved,0,0,0,-1,0,0
+repeat-string,2.0.0,1.6.1,unknown,Additive: handles edge-cases,21214634,1780,0,repeat() API preserved,0,0,0,-1,0,0
+is-plain-obj,4.0.0,3.0.0,2021-04-16T19:09:27.160+0,ESM-only; single predicate function,100528613,2124,0,isPlainObject() preserved,0,0,0,-1,0,0
