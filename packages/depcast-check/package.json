@@ -9,9 +9,34 @@
   "scripts": {
     "test": "node --test src/__tests__/"
   },
-  "keywords": ["depcast", "breaking-changes", "compatibility", "semver", "ci"],
-  "author": "DepCast",
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "keywords": [
+    "depcast",
+    "breaking-changes",
+    "compatibility",
+    "semver",
+    "crs",
+    "ci",
+    "publish-gate",
+    "renovate"
+  ],
+  "author": "Abdelrahman Farag <abdelrahmanfarag1980@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ahafarag/depcast.git",
+    "directory": "packages/depcast-check"
+  },
+  "homepage": "https://github.com/ahafarag/depcast/tree/main/packages/depcast-check#readme",
+  "bugs": {
+    "url": "https://github.com/ahafarag/depcast/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {},
   "engines": {
     "node": ">=18"

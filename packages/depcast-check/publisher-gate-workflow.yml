@@ -1,0 +1,47 @@
+# DepCast Publisher Gate — workflow template
+#
+# Copy to .github/workflows/publish.yml in your repo.
+# Runs depcast-check before npm publish; blocks if CRS >= 0.60 (AVOID zone).
+#
+# Required secrets:
+#   NPM_TOKEN     — npm publish token (Automation type)
+#   GITHUB_TOKEN  — provided automatically by Actions
+
+name: Publish
+
+on:
+  push:
+    tags: ['v[0-9]*.[0-9]*.[0-9]*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Resolve package info
+        id: pkg
+        run: |
+          echo "name=$(node -p "require('./package.json').name")" >> $GITHUB_OUTPUT
+          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: DepCast compatibility risk check
+        run: |
+          npx --yes depcast-check@latest \
+            --package "${{ steps.pkg.outputs.name }}" \
+            --version "${{ steps.pkg.outputs.version }}" \
+            --fail-on avoid \
+            --github-token "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
