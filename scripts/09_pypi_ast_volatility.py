@@ -119,36 +119,45 @@ def extract_public_symbols(py_source):
 def find_package_dir(extract_root, package_name):
     """
     Locate the main Python package directory inside an extracted sdist.
-    sdist layout: {package}-{version}/{package_name}/
-    Import name is often lowercased or differs slightly (e.g. Pillow -> PIL).
+    Handles both flat layout ({pkg}-{ver}/{pkg}/) and src layout
+    ({pkg}-{ver}/src/{pkg}/), as used by click, Flask, pytest, werkzeug.
     """
     candidates = []
+    pkg_lower = package_name.lower().replace("-", "_")
+
+    def _scan_dir(directory):
+        if not os.path.isdir(directory):
+            return
+        for sub in os.listdir(directory):
+            sub_path = os.path.join(directory, sub)
+            if os.path.isdir(sub_path) and os.path.exists(
+                    os.path.join(sub_path, "__init__.py")):
+                candidates.append((sub.lower().replace("-", "_"), sub_path))
+
     for entry in os.listdir(extract_root):
         top = os.path.join(extract_root, entry)
         if not os.path.isdir(top):
             continue
-        # Look inside the version-stamped directory
-        for sub in os.listdir(top):
-            sub_path = os.path.join(top, sub)
-            if os.path.isdir(sub_path) and os.path.exists(os.path.join(sub_path, "__init__.py")):
-                candidates.append((sub.lower(), sub_path))
-        # Also check top-level for flat layouts
-        if os.path.exists(os.path.join(top, "__init__.py")):
-            candidates.append((entry.lower(), top))
+        # flat layout: {pkg}-{ver}/{pkg}/
+        _scan_dir(top)
+        # src layout: {pkg}-{ver}/src/{pkg}/
+        src_dir = os.path.join(top, "src")
+        if os.path.isdir(src_dir):
+            _scan_dir(src_dir)
 
-    pkg_lower = package_name.lower().replace("-", "_")
     # Exact match first
     for name, path in candidates:
         if name == pkg_lower:
             return path
-    # Prefix match
+    # Prefix match (handles PIL vs Pillow, _pytest vs pytest, etc.)
     for name, path in candidates:
-        if name.startswith(pkg_lower[:4]):
+        if name.startswith(pkg_lower[:4]) or pkg_lower.startswith(name[:4]):
             return path
-    # Return first candidate with __init__.py
-    if candidates:
-        return candidates[0][1]
-    return None
+    # Return first candidate with __init__.py that isn't a test dir
+    for name, path in candidates:
+        if "test" not in name:
+            return path
+    return candidates[0][1] if candidates else None
 
 
 def get_symbols_for_version(package, version, tmpdir):
