@@ -109,6 +109,8 @@ depcast/
 
 ## Replication
 
+**Python version:** 3.10+ required (tested on 3.10, 3.11, 3.13).
+
 ### Requirements
 
 ```bash
@@ -155,6 +157,16 @@ python scripts/05_compute_crs_validation.py
 
 # Optional: expand dataset via npm deprecation sweep
 python scripts/07_npm_deprecation_sweep.py --seed-file data/top_npm_seed.txt
+
+# Phase 3: PyPI ecosystem
+python scripts/08_fetch_pypi_metadata.py        # PyPI seed metadata
+python scripts/09_pypi_ast_volatility.py        # PyPI V(r) via AST diffing
+python scripts/10_fetch_pypi_signals.py         # PyPI GitHub propagation signals
+python scripts/12_sweep_api_volatility.py       # V(r) for sweep candidates (npm)
+
+# After all data collected:
+python scripts/05_compute_crs_validation.py     # Re-run CRS with full V(r)
+python scripts/11_merge_pypi_crs.py             # Cross-ecosystem combined dataset
 ```
 
 **Expected output per script:**
@@ -163,13 +175,19 @@ python scripts/07_npm_deprecation_sweep.py --seed-file data/top_npm_seed.txt
 |--------|--------|---------|
 | 00 | `breaking_releases.csv` patched | ~3 min |
 | 01 | `breaking_releases.csv` | ~2 min |
-| 02 | `api_volatility.csv` | ~5 min |
+| 02 | `api_volatility.csv` (original 51) | ~5 min |
 | 03 | `propagation_signals.csv` | ~20 min (rate-limited) |
 | 03b | `ci_signals.csv` | ~30 min (rate-limited) |
+| 03c | `sweep_propagation_signals.csv` | ~2 h (rate-limited) |
 | 04 | `sir_model_results.csv` + Figure 1 | ~1 min |
 | 05 | `crs_scores.csv` + Figure 2 | ~1 min |
 | 06 | `nonbreaking_releases.csv` | ~8 min |
 | 07 | `deprecation_sweep_candidates.csv` | ~5 min |
+| 08 | `pypi_breaking_releases.csv` | ~3 min |
+| 09 | `pypi_api_volatility.csv` | ~10 min |
+| 10 | `pypi_propagation_signals.csv` | ~30 min (rate-limited) |
+| 11 | `combined_crs_scores.csv` + cross-ecosystem figure | ~1 min |
+| 12 | `api_volatility.csv` extended (sweep candidates) | ~25 min |
 
 ### V(r) method
 
@@ -215,24 +233,9 @@ Dependency Update → [ DEPCAST CONSUMER GATE ] → Build → Tests → Deploy
 
 ### Renovate Plugin Specification (Phase 5)
 
-The highest-leverage live-signal source is a **Renovate plugin** that emits anonymized upgrade outcome events to a DepCast aggregator endpoint.
+The planned live-signal source is a Renovate plugin that emits anonymized upgrade-outcome events to a DepCast aggregator endpoint, providing real-time D(t) signal at ecosystem scale.
 
-**Plugin contract (proposed):**
-```json
-POST https://api.depcast.io/v1/signal
-{
-  "package":        "chalk",
-  "from":           "4.1.2",
-  "to":             "5.0.0",
-  "outcome":        "ci_failed" | "merged" | "closed_manual",
-  "checks_total":   12,
-  "checks_failed":  3,
-  "repo_hash":      "<sha256 of org/repo — never stored raw>",
-  "ts":             1714000000
-}
-```
-
-**Privacy model:** `repo_hash` is a one-way hash. Only aggregate counts per `(package, to_version)` are surfaced. Opt-in is explicit via `depcast: true` in `renovate.json`.
+Full specification: [docs/renovate-plugin-spec.md](docs/renovate-plugin-spec.md)
 
 ---
 
