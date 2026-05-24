@@ -1,0 +1,19 @@
+{
+  "name": "depcast-check",
+  "version": "1.0.0",
+  "description": "Pre-publish compatibility risk check using the DepCast CRS model",
+  "main": "src/index.js",
+  "bin": {
+    "depcast-check": "src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test src/__tests__/"
+  },
+  "keywords": ["depcast", "breaking-changes", "compatibility", "semver", "ci"],
+  "author": "DepCast",
+  "license": "MIT",
+  "dependencies": {},
+  "engines": {
+    "node": ">=18"
+  }
+}
