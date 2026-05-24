@@ -1,0 +1,26 @@
+package,breaking_version,prior_stable_version,published_at,description,weekly_downloads,dependent_count,has_changelog,notes,label_breaking,github_url
+Django,2.0,1.11.17,2017-12-02T15:11:49,The Web framework for perfectionists with deadlines,11174509,0,1,Removed Python 2 support; renamed django.core.urlresolvers to django.urls,1,https://github.com/django/django
+Django,3.0,2.2.9,2019-12-02T11:13:11,The Web framework for perfectionists with deadlines,11174509,0,1,Dropped Python 3.5/3.6; removed features deprecated in 2.x,1,https://github.com/django/django
+Django,4.0,3.2.10,2021-12-07T09:19:58,The Web framework for perfectionists with deadlines,0,0,1,Removed all features deprecated in 3.x cycle; dropped Python 3.7/3.8,1,https://github.com/django/django
+pandas,2.0.0,1.5.3,2023-04-03T14:10:47,Powerful data structures for data analysis,0,0,1,Default dtype changed; Copy-on-Write semantics; Index no longer subclasses ndarray,1,https://github.com/pandas-dev/pandas
+numpy,2.0.0,1.26.4,2024-06-16T13:06:46,Fundamental package for array computing,235334365,0,1,Major ABI break; removed deprecated functions and C API symbols,1,https://github.com/numpy/numpy
+SQLAlchemy,2.0.0,1.4.46,2023-01-26T23:43:33,Database Abstraction Library,90531122,0,1,Complete rewrite of Core and ORM; removed legacy Query API,1,https://github.com/sqlalchemy/sqlalchemy
+pydantic,2.0.0,1.10.13,unknown,Data validation using Python type hints,252964341,0,1,Complete rewrite; v1 API removed; validators and field syntax changed,1,https://github.com/sponsors/samuelcolvin
+Celery,5.0.0,4.4.7,2020-09-24T15:01:48,Distributed Task Queue,12707204,0,1,Dropped Python 2 and 3.5; renamed CLI options; config format changes,1,https://github.com/celery/celery
+click,8.0.0,7.1.2,2021-05-11T20:45:59,Composable command line interface toolkit,243120442,0,1,Removed Python 2; token normalisation changes; option parsing behaviour changed,1,https://github.com/pallets/click
+Pillow,10.0.0,9.5.0,2023-07-01T14:56:18,Python Imaging Library fork,107106185,0,1,Removed long-deprecated constants and functions; dropped Python 3.7,1,https://github.com/python-pillow/Pillow/releases
+pytest,7.0.0,6.2.5,2022-02-04T10:21:26,pytest: simple powerful testing with Python,197037851,0,1,Removed deprecated APIs; conftest.py scope changes; warning filter changes,1,https://github.com/pytest-dev/pytest
+Flask,2.0.0,1.1.4,2021-05-11T21:46:04,A simple framework for building complex web applications,47688328,0,1,Dropped Python 2 and 3.5; async view support; Werkzeug 2.0 required,1,https://github.com/pallets/flask
+aiohttp,3.0.0,2.3.10,2018-02-12T10:02:44,Async http client/server framework,136164399,0,1,Major rewrite; coroutine-based API replaced; ClientSession changes,1,https://github.com/aio-libs/aiohttp/actions?query=workflow%3ACI
+Scrapy,2.0.0,1.8.0,2020-03-03T08:42:42,High-level web crawling and scraping framework,1102508,0,1,Dropped Python 2; removed deprecated Scrapy.Spider attributes,1,https://github.com/scrapy/scrapy
+cryptography,42.0.0,41.0.7,2024-01-23T01:19:56,Cryptographic primitives and recipes for Python,0,0,1,Removed deprecated RSA/DSA/backend parameter; Rust extension required,1,https://github.com/pyca/cryptography
+sphinx,5.0.0,4.5.0,2022-05-29T16:19:56,Python documentation generator,0,0,1,Dropped Python 3.6; removed deprecated directives and extensions API,1,https://github.com/sphinx-doc/sphinx
+marshmallow,3.0.0,2.21.0,2019-08-18T22:34:13,Object serialization/deserialization library,32896950,0,1,Complete API rewrite; Schema declaration syntax changed; Meta class required,1,https://github.com/marshmallow-code/marshmallow/issues
+werkzeug,2.0.0,1.0.1,2021-05-11T20:26:15,The comprehensive WSGI web application library,0,0,1,Removed Python 2; deprecated APIs removed; routing system changes,1,https://github.com/pallets/werkzeug
+mypy,1.0.0,0.991,2023-02-06T19:44:41,Optional static typing for Python,39341165,0,1,Stricter inference defaults; removed legacy --strict-optional flag behaviour,1,https://github.com/python/mypy/blob/master/CHANGELOG.md
+Pillow,9.0.0,8.4.0,2022-01-02T22:13:51,Python Imaging Library fork,0,0,1,Removed deprecated PIL.Image constants; ANTIALIAS renamed to LANCZOS,1,https://github.com/python-pillow/Pillow/releases
+urllib3,2.0.0,1.26.15,2023-04-26T17:21:22,HTTP library with thread-safe connection pooling,0,0,1,Removed Python 2; removed deprecated urllib3.contrib modules; SSL changes,1,https://github.com/urllib3/urllib3/blob/main/CHANGES.rst
+attrs,22.2.0,21.4.0,2022-12-21T09:48:49,Classes Without Boilerplate,0,0,1,Dropped Python 3.5; removed deprecated attr.assoc; slots default changed,1,https://github.com/sponsors/hynek
+setuptools,58.0.0,57.4.0,2021-09-05T21:27:44,Easily download install build upgrade remove Python packages,0,0,1,Removed deprecated easy_install and pkg_resources.run_main,1,https://github.com/pypa/setuptools
+httpx,0.23.0,0.22.0,2022-05-23T15:32:35,The next generation HTTP client,177479055,0,1,Removed deprecated sync Client methods; timeout API changed,1,https://github.com/encode/httpx/blob/master/CHANGELOG.md
+fastapi,0.100.0,0.99.1,2023-07-07T17:33:17,FastAPI framework high performance easy to learn,122787290,0,1,Pydantic v2 migration; field validation behaviour changes,1,https://github.com/fastapi/fastapi
