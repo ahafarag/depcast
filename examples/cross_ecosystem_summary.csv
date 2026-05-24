@@ -1,0 +1,4 @@
+ecosystem,n_breaking,R0_median,R0_mean,first_issue_h_med,pattern_C_count,pattern_C_pct,CRS_median
+npm,306,1.435,2.548,,191,62.4,0.015
+pubdev,25,10.304,9.115,1.1,18,72.0,0.193
+pypi,25,0.993,0.984,1.1,6,24.0,0.332
