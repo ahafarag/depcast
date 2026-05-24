@@ -124,7 +124,10 @@ def parse_pub_dt(pub_str):
         return None
     try:
         s = str(pub_str).replace(" UTC", "+00:00").replace("Z", "+00:00")
-        return datetime.fromisoformat(s[:25])
+        dt = datetime.fromisoformat(s[:25])
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
     except Exception:
         return None
 
@@ -188,6 +191,8 @@ def main():
                         ts = files[0].get("upload_time", "")
                         if ts:
                             pub_dt = datetime.fromisoformat(ts)
+                            if pub_dt.tzinfo is None:
+                                pub_dt = pub_dt.replace(tzinfo=timezone.utc)
             except Exception:
                 pass
             time.sleep(0.5)
