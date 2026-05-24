@@ -1,0 +1,84 @@
+name: "DepCast Consumer Gate"
+description: >
+  Runs the DepCast CRS check on Renovate upgrade PRs, labels them
+  (depcast:safe / depcast:wait / depcast:avoid), and blocks merge for
+  AVOID-rated releases.  Emits anonymized signals to the aggregator on close.
+
+author: "DepCast"
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  github-token:
+    description: "GitHub token (pass secrets.GITHUB_TOKEN)"
+    required: true
+
+  threshold:
+    description: "CRS threshold above which merge is blocked"
+    required: false
+    default: "0.60"
+
+  fail-on:
+    description: "Rating level that triggers block: avoid | wait | never"
+    required: false
+    default: "avoid"
+
+  aggregator-url:
+    description: >
+      URL of the DepCast aggregator endpoint.
+      Leave empty to skip signal emission.
+    required: false
+    default: ""
+
+  depcast-check-path:
+    description: >
+      Path to the depcast-check src/ directory (relative to repo root).
+      Defaults to the bundled copy inside this action.
+    required: false
+    default: ""
+
+outputs:
+  crs:
+    description: "Computed CRS score [0, 1]"
+
+  rating:
+    description: "SAFE | WAIT | AVOID"
+
+  blocked:
+    description: "true if merge was blocked"
+
+  skipped:
+    description: "true if PR did not match a Renovate upgrade pattern"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Set up Python"
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: "Run DepCast consumer gate"
+      shell: python
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        DEPCAST_EVENT: ${{ github.event.action }}
+        DEPCAST_PR_TITLE: ${{ github.event.pull_request.title }}
+        DEPCAST_PR_NUMBER: ${{ github.event.pull_request.number }}
+        DEPCAST_REPO: ${{ github.repository }}
+        DEPCAST_PR_MERGED: ${{ github.event.pull_request.merged }}
+        DEPCAST_THRESHOLD: ${{ inputs.threshold }}
+        DEPCAST_FAIL_ON: ${{ inputs.fail-on }}
+        DEPCAST_AGGREGATOR: ${{ inputs.aggregator-url }}
+        DEPCAST_NODE_PATH: ${{ inputs.depcast-check-path }}
+        DEPCAST_CHECKS_TOTAL: ${{ github.event.pull_request.commits }}
+        DEPCAST_CHECKS_FAILED: "0"
+      run: |
+        import subprocess, sys, os
+        action_dir = os.path.join(os.environ.get('GITHUB_ACTION_PATH', '.'), 'src')
+        sys.exit(subprocess.run(
+            [sys.executable, os.path.join(action_dir, 'consumer.py')],
+            env=os.environ
+        ).returncode)

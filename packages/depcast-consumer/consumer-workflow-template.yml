@@ -1,0 +1,34 @@
+# DepCast Consumer Gate — workflow template
+#
+# Copy this file to .github/workflows/depcast-consumer.yml in your repo.
+# Requires: "depcast": true in renovate.json (opt-in signal reporting).
+#
+# This workflow runs on every Renovate upgrade PR and:
+#   - Labels PRs with depcast:safe / depcast:wait / depcast:avoid
+#   - Posts a CRS breakdown comment
+#   - Blocks merge for AVOID-rated releases (CRS >= threshold)
+#   - Emits an anonymized outcome signal when the PR closes
+
+name: DepCast Consumer Gate
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+jobs:
+  depcast:
+    # Only run on Renovate PRs
+    if: github.actor == 'renovate[bot]' || github.actor == 'renovate'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write   # post comments + reviews + labels
+      contents: read
+
+    steps:
+      - name: DepCast compatibility risk check
+        uses: ahafarag/depcast/packages/depcast-consumer@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          threshold: "0.60"           # block if CRS >= 0.60 (AVOID zone)
+          fail-on: "avoid"            # avoid | wait | never
+          # aggregator-url: "https://api.depcast.io"   # uncomment to report signals
