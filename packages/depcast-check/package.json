@@ -27,7 +27,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ahafarag/depcast.git",
+    "url": "git+https://github.com/ahafarag/depcast.git",
     "directory": "packages/depcast-check"
   },
   "homepage": "https://github.com/ahafarag/depcast/tree/main/packages/depcast-check#readme",
