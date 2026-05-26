@@ -5,13 +5,14 @@
 **A Two-Sided Compatibility Intelligence Protocol for Software Package Ecosystems**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![npm](https://img.shields.io/badge/npm-depcast--check@1.0.0-red.svg)](https://www.npmjs.com/package/depcast-check)
 [![Status](https://img.shields.io/badge/status-active%20research-orange.svg)]()
 [![Target](https://img.shields.io/badge/target-MSR%202027-blueviolet.svg)]()
-[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20360607-blue.svg)](https://zenodo.org/records/20360607)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20361569-blue.svg)](https://doi.org/10.5281/zenodo.20361569)
 [![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/ahafarag)
 
-*Farag, A. (2026). DepCast: Early Detection of Breaking npm Package Releases via Compatibility Risk Scoring and Epidemiological Propagation Modelling. Zenodo. https://doi.org/10.5281/zenodo.20360607*
+*Farag, A. (2026). DepCast: A Two-Sided Compatibility Intelligence Protocol for Software Package Ecosystems. Zenodo. https://doi.org/10.5281/zenodo.20361569*
 
 </div>
 
@@ -44,23 +45,61 @@ CRS(t) = w₁·V(r) + w₂·E(r) + w₃·D(t) + w₄·H(m)
 
 ---
 
+## Try It
+
+```bash
+npx depcast-check --package chalk --version 5.0.0
+```
+
+```
+DepCast CRS Check
+-----------------------------------------------
+Package:  chalk@5.0.0  (prior: 4.1.2)
+-----------------------------------------------
+V(r):  0.000  [....................]  API volatility       pattern C
+E(r):  0.611  [############........]  Downstream exposure  (439M weekly downloads)
+D(t):  0.000  [....................]  Observed failures    (0 issues/24h)
+H(m):  0.030  [#...................]  Maintainer history   (R0=1.162)
+-----------------------------------------------
+CRS:   0.186   SAFE
+-----------------------------------------------
+Recommendation: Release looks safe. Proceed with publish.
+```
+
+See [`packages/depcast-check/`](packages/depcast-check/) for full CLI documentation and GitHub Actions integration.
+
+---
+
 ## Key Empirical Findings
 
-Phase 1 empirical study — 51 confirmed breaking npm releases (2013–2023):
+Empirical study of **396 confirmed breaking releases** across npm, PyPI, and pub.dev:
 
 **Finding 1 — Propagation signals are universal and fast**
-Community failure signals were detectable for all 46 releases with retrievable publish timestamps (100%). Median time-to-first-issue: **1.02 hours**. 87% of releases generated signals within 6 hours of publish.
+Community failure signals surface within a median of **~1 hour** across all three ecosystems (npm: 1.0h, PyPI: 1.1h, pub.dev: 1.1h). 87% of npm releases generated signals within 6 hours of publish.
 
 **Finding 2 — Pattern C: breaking without detected symbol removal**
-37% of confirmed breaking releases (19/51) show V(r)=0 — they break ecosystems without removing any detected exported symbol. These are invisible to static API diff tools yet generate an average of 32.1 GitHub issues within 24 hours, directly motivating the D(t) runtime signal component.
+62.4% of breaking npm releases show V(r)=0 — they break ecosystems without removing any detected exported symbol. These are invisible to static API diff tools. Pattern C rates: npm=62.4%, PyPI=24.0%, pub.dev=72.0%.
 
-**Finding 3 — Epidemiological propagation**
-All 44 clean-fitted releases exhibit R₀ > 1.0 under a SIR model (median R₀=1.42, n=44, excluding two fitting-artifact outliers). Zero releases are self-contained (R₀ < 1.0).
+**Finding 3 — Cross-ecosystem R₀ comparison**
 
-**Finding 4 — AUC-ROC: 1.000 on 91-release dataset (51 breaking + 40 non-breaking controls)**
-Logistic regression weight learning on the combined dataset achieves perfect separation. D(t) is the dominant discriminating feature (w=0.584), with V(r) as a strong secondary signal (w=0.335).
+| Ecosystem | n | R₀ median | Pattern C | First issue (median) |
+|-----------|---|-----------|-----------|----------------------|
+| npm | 306 | 1.44 | 62.4% | 1.0h |
+| PyPI | 25 | 0.99 | 24.0% | 1.1h |
+| pub.dev | 25 | **10.3** | 72.0% | 1.1h |
 
-> **Note on AUC:** Perfect separation on a small dataset warrants caution. Controls were partly selected by low community signal — which correlates with low D(t). Phase 2 will address this with a blind control group and GitHub-verified labels.
+PyPI is sub-critical (R₀ < 1): pip's pinning culture absorbs shocks. pub.dev's R₀ ≈ 10 is driven by Flutter's null-safety migration forcing a simultaneous ecosystem-wide update.
+
+**Finding 4 — AUC-ROC = 0.853 on 346-release validation set**
+Logistic regression on 306 breaking + 40 non-breaking controls. D(t) is the dominant discriminating feature (w=0.584), with V(r) as a strong secondary signal (w=0.335).
+
+**Top AVOID-rated releases:**
+
+| Package | Version | CRS | Reason |
+|---------|---------|-----|--------|
+| glob | 9.0.0 | 0.631 | Complete API surface removed + high issue rate |
+| semver | 7.0.0 | 0.622 | 718M weekly downloads — highest E(r) in dataset |
+| moment | 2.0.0 | 0.580 | 39.5% Dependabot rejection rate |
 
 ---
 
@@ -79,37 +118,68 @@ Logistic regression weight learning on the combined dataset achieves perfect sep
 ## Repository Structure
 
 ```
-depcast/
+depcast-public/
 ├── data/
-│   ├── breaking_releases.csv           # 51 confirmed breaking npm releases (timestamps + downloads fixed)
-│   ├── nonbreaking_releases.csv        # 40 non-breaking controls (label_breaking=0)
-│   ├── deprecation_sweep_candidates.csv# 1,275+ automated candidates from npm deprecation sweep
-│   ├── top_npm_seed.txt                # 663 curated top-downloaded packages for sweeping
-│   ├── propagation_signals.csv         # N(t) GitHub issue counts, 72h window, n=46
-│   ├── ci_signals.csv                  # D(t): Dependabot PR rejection + CI failures + npm signals
-│   ├── api_volatility.csv              # V(r) scores for 51 releases
-│   ├── sir_model_results.csv           # SIR model R₀ for 46 releases (with outlier flags)
-│   └── crs_scores.csv                  # CRS(t) scores for 91 releases (breaking + controls)
+│   ├── breaking_releases.csv            # 306 confirmed breaking npm releases
+│   ├── nonbreaking_releases.csv         # 40 non-breaking controls (label_breaking=0)
+│   ├── pypi_breaking_releases.csv       # 25 confirmed breaking PyPI releases
+│   ├── pubdev_breaking_releases.csv     # 25 confirmed breaking pub.dev releases
+│   ├── combined_crs_scores.csv          # 396-release combined dataset (all ecosystems)
+│   ├── sweep_top290_candidates.csv      # 290 high-confidence npm deprecation candidates
+│   ├── propagation_signals.csv          # N(t) GitHub issue counts, 72h window
+│   ├── ci_signals.csv                   # D(t): Dependabot PR rejection + CI failures
+│   ├── api_volatility.csv               # V(r) scores (npm)
+│   ├── pypi_api_volatility.csv          # V(r) scores (PyPI, AST-based)
+│   ├── sir_model_results.csv            # SIR R₀ for npm releases
+│   ├── pypi_sir_results.csv             # SIR R₀ for PyPI releases
+│   └── pubdev_sir_results.csv           # SIR R₀ for pub.dev releases
 ├── scripts/
-│   ├── 00_fix_npm_metadata.py          # Patch published_at + weekly_downloads from npm API
-│   ├── 01_collect_breaking_releases.py # Seed dataset collection from npm registry
-│   ├── 02_compute_api_volatility.py    # V(r) via heuristic export-declaration extraction
-│   ├── 03_fetch_propagation_signals.py # N(t) via date-filtered GitHub Search API
-│   ├── 03b_fetch_ci_signals.py         # D(t) via Dependabot/Renovate PR rejection + CI failures
-│   ├── 04_fit_sir_model.py             # SIR model fitting and R₀ estimation
-│   ├── 05_compute_crs_validation.py    # CRS computation, AUC-ROC, validation figures
-│   ├── 06_collect_nonbreaking_controls.py # Non-breaking release collection (negative class)
-│   └── 07_npm_deprecation_sweep.py     # Automated dataset expansion via deprecation signals
-└── figures/
-    ├── sir_propagation_curves_v2.png   # Figure 1: SIR propagation curves (n=46)
-    └── crs_validation_v2.png           # Figure 2: CRS validation dashboard (AUC-ROC)
+│   ├── 00_fix_npm_metadata.py           # Patch published_at + weekly_downloads
+│   ├── 01_collect_breaking_releases.py  # npm seed dataset collection
+│   ├── 02_compute_api_volatility.py     # V(r) via export-declaration extraction
+│   ├── 03_fetch_propagation_signals.py  # N(t) via GitHub Search API
+│   ├── 03b_fetch_ci_signals.py          # D(t) via Dependabot PR rejection + CI failures
+│   ├── 03c_fetch_sweep_signals.py       # Propagation signals for sweep candidates
+│   ├── 04_fit_sir_model.py              # SIR model fitting and R₀ estimation
+│   ├── 05_compute_crs_validation.py     # CRS computation, AUC-ROC, validation figures
+│   ├── 06_collect_nonbreaking_controls.py # Non-breaking release collection
+│   ├── 07_npm_deprecation_sweep.py      # Automated dataset expansion
+│   ├── 08_fetch_pypi_metadata.py        # PyPI seed metadata
+│   ├── 09_pypi_ast_volatility.py        # PyPI V(r) via AST diffing
+│   ├── 10_fetch_pypi_signals.py         # PyPI GitHub propagation signals
+│   ├── 11_merge_pypi_crs.py             # Cross-ecosystem combined dataset
+│   ├── 12_sweep_api_volatility.py       # V(r) for npm sweep candidates
+│   ├── 13_fetch_pubdev_metadata.py      # pub.dev seed metadata
+│   ├── 14_pubdev_dart_volatility.py     # pub.dev V(r) via Dart API diffing
+│   ├── 15_fetch_pubdev_signals.py       # pub.dev GitHub propagation signals
+│   └── 16_network_sir.py               # SIR-on-dependency-network (HMF + Monte Carlo)
+├── figures/
+│   ├── sir_propagation_curves_v2.png    # Figure 1: SIR propagation curves
+│   ├── crs_validation_v2.png            # Figure 2: CRS validation dashboard (AUC=0.853)
+│   ├── cross_ecosystem.png              # Figure 3: Cross-ecosystem R₀ comparison
+│   └── network_sir.png                  # Figure 4: Network SIR propagation
+├── packages/
+│   ├── depcast-check/                   # Publisher gate CLI (npm: depcast-check@1.0.0)
+│   ├── depcast-consumer/                # Renovate consumer gate (composite action)
+│   └── depcast-aggregator/              # Telemetry aggregator (FastAPI + SQLite)
+├── docs/
+│   ├── publisher-gate-spec.md           # Publisher gate integration spec
+│   ├── renovate-plugin-spec.md          # Renovate plugin specification
+│   └── renovate-integration.md          # Renovate integration guide
+├── paper/
+│   └── depcast_arxiv.tex               # LaTeX paper (IEEE format, 7 pages)
+├── examples/
+│   ├── crs_top20.csv                   # Top 20 breaking releases by CRS
+│   ├── cross_ecosystem_summary.csv     # Cross-ecosystem comparison table
+│   └── sir_r0_all_ecosystems.csv       # SIR fit results across all ecosystems
+└── requirements.txt                    # Pinned Python dependencies
 ```
 
 ---
 
 ## Replication
 
-**Python version:** 3.10+ required (tested on 3.10, 3.11, 3.13).
+**Python version:** 3.10+ required.
 
 ### Requirements
 
@@ -119,11 +189,11 @@ pip install -r requirements.txt
 
 ### Environment
 
-Copy `.env.sample` to `.env` and add your GitHub token (required for scripts 03 and 03b):
+Copy `.env.sample` to `.env` and set your GitHub token:
 
 ```bash
 cp .env.sample .env
-# edit .env and set GITHUB_TOKEN=your_token_here
+# edit .env: GITHUB_TOKEN=your_token_here
 ```
 
 Generate a token at [github.com/settings/tokens](https://github.com/settings/tokens) with `public_repo` scope.
@@ -131,111 +201,96 @@ Generate a token at [github.com/settings/tokens](https://github.com/settings/tok
 ### Pipeline
 
 ```bash
-# Fix npm metadata gaps (no token needed)
+# Fix npm metadata gaps
 python scripts/00_fix_npm_metadata.py
 
-# Collect breaking releases seed dataset
+# npm breaking releases + signals
 python scripts/01_collect_breaking_releases.py
-
-# Compute API volatility scores
 python scripts/02_compute_api_volatility.py
-
-# Fetch propagation signals (requires GitHub token)
 python scripts/03_fetch_propagation_signals.py
-
-# Fetch CI signals: Dependabot PR rejection + CI failures (requires GitHub token)
 python scripts/03b_fetch_ci_signals.py
-
-# Fit SIR propagation model
 python scripts/04_fit_sir_model.py
 
-# Collect non-breaking controls (negative class for AUC-ROC)
+# Non-breaking controls + AUC-ROC
 python scripts/06_collect_nonbreaking_controls.py
-
-# Compute CRS scores and generate validation figures
 python scripts/05_compute_crs_validation.py
 
-# Optional: expand dataset via npm deprecation sweep
+# Dataset expansion (npm deprecation sweep)
 python scripts/07_npm_deprecation_sweep.py --seed-file data/top_npm_seed.txt
+python scripts/03c_fetch_sweep_signals.py
+python scripts/12_sweep_api_volatility.py
 
-# Phase 3: PyPI ecosystem
-python scripts/08_fetch_pypi_metadata.py        # PyPI seed metadata
-python scripts/09_pypi_ast_volatility.py        # PyPI V(r) via AST diffing
-python scripts/10_fetch_pypi_signals.py         # PyPI GitHub propagation signals
-python scripts/12_sweep_api_volatility.py       # V(r) for sweep candidates (npm)
+# PyPI ecosystem
+python scripts/08_fetch_pypi_metadata.py
+python scripts/09_pypi_ast_volatility.py
+python scripts/10_fetch_pypi_signals.py
 
-# After all data collected:
-python scripts/05_compute_crs_validation.py     # Re-run CRS with full V(r)
-python scripts/11_merge_pypi_crs.py             # Cross-ecosystem combined dataset
+# pub.dev ecosystem
+python scripts/13_fetch_pubdev_metadata.py
+python scripts/14_pubdev_dart_volatility.py
+python scripts/15_fetch_pubdev_signals.py
+
+# Cross-ecosystem merge + network SIR
+python scripts/11_merge_pypi_crs.py
+python scripts/16_network_sir.py
 ```
 
-**Expected output per script:**
+**Expected outputs per script:**
 
 | Script | Output | Runtime |
 |--------|--------|---------|
 | 00 | `breaking_releases.csv` patched | ~3 min |
 | 01 | `breaking_releases.csv` | ~2 min |
-| 02 | `api_volatility.csv` (original 51) | ~5 min |
-| 03 | `propagation_signals.csv` | ~20 min (rate-limited) |
-| 03b | `ci_signals.csv` | ~30 min (rate-limited) |
-| 03c | `sweep_propagation_signals.csv` | ~2 h (rate-limited) |
+| 02 | `api_volatility.csv` | ~5 min |
+| 03 | `propagation_signals.csv` | ~20 min |
+| 03b | `ci_signals.csv` | ~30 min |
+| 03c | `sweep_propagation_signals.csv` | ~2 h |
 | 04 | `sir_model_results.csv` + Figure 1 | ~1 min |
 | 05 | `crs_scores.csv` + Figure 2 | ~1 min |
 | 06 | `nonbreaking_releases.csv` | ~8 min |
 | 07 | `deprecation_sweep_candidates.csv` | ~5 min |
 | 08 | `pypi_breaking_releases.csv` | ~3 min |
 | 09 | `pypi_api_volatility.csv` | ~10 min |
-| 10 | `pypi_propagation_signals.csv` | ~30 min (rate-limited) |
-| 11 | `combined_crs_scores.csv` + cross-ecosystem figure | ~1 min |
-| 12 | `api_volatility.csv` extended (sweep candidates) | ~25 min |
-
-### V(r) method
-
-V(r) uses heuristic export-declaration extraction — pattern matching over five JavaScript/TypeScript export syntax forms within npm package tarballs. It cannot detect dynamic exports or build-time code generation. **V(r)=0 does not mean a release is non-breaking** — this is the Pattern C finding (paper Section 5.4).
-
-### SIR outlier flags
-
-Two releases are flagged via `is_R0_outlier=1` and excluded from aggregate R₀ statistics:
-- `eslint@7.0.0` (R₀=38.6) — rapid N(t) saturation within 6h causes optimizer degeneracy
-- `yargs@17.0.0` (R₀=9.4) — sparse propagation curve (3 issues in 72h window)
+| 10 | `pypi_propagation_signals.csv` | ~30 min |
+| 11 | `combined_crs_scores.csv` + Figure 3 | ~1 min |
+| 12 | `api_volatility.csv` extended | ~25 min |
+| 13 | `pubdev_breaking_releases.csv` | ~3 min |
+| 14 | `pubdev_api_volatility.csv` | ~10 min |
+| 15 | `pubdev_propagation_signals.csv` | ~30 min |
+| 16 | `network_sir.png` | ~5 min |
 
 ---
 
-## CRS Protocol
+## GitHub Actions Integration
 
-**Publisher pipeline:**
-```
-Code → Build → Tests → [ DEPCAST PUBLISHER GATE ] → Publish
+```yaml
+- name: DepCast compatibility risk check
+  run: |
+    npx depcast-check \
+      --package ${{ env.PACKAGE_NAME }} \
+      --version ${{ env.PACKAGE_VERSION }} \
+      --threshold 0.60 \
+      --fail-on avoid \
+      --github-token ${{ secrets.GITHUB_TOKEN }}
 ```
 
-**Consumer pipeline:**
-```
-Dependency Update → [ DEPCAST CONSUMER GATE ] → Build → Tests → Deploy
-```
+Exit code `1` blocks the publish. Exit code `0` lets it through. Full options in [`packages/depcast-check/README.md`](packages/depcast-check/README.md).
 
 ---
 
-## Research Agenda
+## Research Status
 
 | Phase | Task | Status | Target Venue |
 |-------|------|--------|--------------|
-| 1 | Empirical study: 51 breaking npm releases; SIR model; CRS scoring | **Done (v0.5)** | arXiv cs.SE |
-| 1b | D(t) signal stack: Dependabot PR rejection; npm deprecation; CI failures | **Done** | — |
-| 2a | Dataset expansion: 1,275+ candidates via npm deprecation sweep | **Done** | — |
-| 2b | Non-breaking controls: 40 verified releases (label_breaking=0) | **Done** | — |
-| 2c | AUC-ROC validation on 91-release dataset | **Done (AUC=1.000\*)** | — |
-| 3 | Extend to 300+ verified releases; blind controls; cross-validated AUC | Planned | MSR 2027 |
-| 4 | Publisher gate prototype as npm package; FP/FN measurement | Planned | ICSME 2027 |
-| 5 | Renovate plugin for live telemetry aggregation | Planned | ICSE industry |
-| 6 | Cross-ecosystem replication on PyPI and pub.dev | Planned | MSR 2028 |
+| 1 | Empirical study: 51 breaking npm releases; SIR model; CRS scoring | **Done** | — |
+| 2 | Dataset expansion (346 releases); non-breaking controls; AUC=0.853 | **Done** | — |
+| 3 | Cross-ecosystem: PyPI (25) + pub.dev (25); network SIR; 396 total | **Done** | — |
+| 4 | Publisher gate CLI: `depcast-check@1.0.0` on npm | **Done** | — |
+| 5 | Renovate consumer gate + telemetry aggregator; PR to renovatebot/renovate | **Done (PR open)** | — |
+| 6 | Paper submission to MSR 2027 | **In progress** | MSR 2027 (~Oct 2026) |
+| — | EMSE 2027 (requires live D(t) from 500+ opt-in repos) | Planned | EMSE 2027 |
 
-*\* AUC=1.000 on n=91 — interpret with caution; see Finding 4 note above.*
-
-### Renovate Plugin Specification (Phase 5)
-
-The planned live-signal source is a Renovate plugin that emits anonymized upgrade-outcome events to a DepCast aggregator endpoint, providing real-time D(t) signal at ecosystem scale.
-
-Full specification: [docs/renovate-plugin-spec.md](docs/renovate-plugin-spec.md)
+**Renovate PR:** [renovatebot/renovate#43563](https://github.com/renovatebot/renovate/pull/43563) — adding DepCast to the community tools list.
 
 ---
 
@@ -247,8 +302,7 @@ Full specification: [docs/renovate-plugin-spec.md](docs/renovate-plugin-spec.md)
             for Software Package Ecosystems},
   author = {Farag, Abdelrahman},
   year   = {2026},
-  month  = {April},
-  note   = {Research Position Paper v0.5. arXiv cs.SE / MSR 2027},
+  note   = {Zenodo. https://doi.org/10.5281/zenodo.20361569},
   url    = {https://github.com/ahafarag/depcast}
 }
 ```
