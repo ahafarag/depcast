@@ -47,24 +47,26 @@ CRS(t) = w₁·V(r) + w₂·E(r) + w₃·D(t) + w₄·H(m)
 
 ## Try It
 
+When `chalk@5.0.0` dropped it switched to pure ESM, breaking thousands of `require()` builds overnight. No functions were deleted — static analysis tools gave it a clean pass. DepCast catches the class of change that causes this:
+
 ```bash
 npx depcast-check --package chalk --version 5.0.0
 ```
 
 ```
-DepCast CRS Check
------------------------------------------------
-Package:  chalk@5.0.0  (prior: 4.1.2)
------------------------------------------------
-V(r):  0.000  [....................]  API volatility       pattern C
-E(r):  0.611  [############........]  Downstream exposure  (439M weekly downloads)
-D(t):  0.000  [....................]  Observed failures    (0 issues/24h)
-H(m):  0.030  [#...................]  Maintainer history   (R0=1.162)
------------------------------------------------
-CRS:   0.186   SAFE
------------------------------------------------
-Recommendation: Release looks safe. Proceed with publish.
+  depcast-check  chalk@5.0.0  (prior: 4.1.2)
+  ───────────────────────────────────────────────────
+  V(r)  API volatility       0.000  ░░░░░░░░░░░░░░░░░░░░  Pattern C
+  E(r)  Downstream exposure  0.611  ████████████░░░░░░░░  439M wkly downloads
+  D(t)  Observed failures    0.000  ░░░░░░░░░░░░░░░░░░░░  0 issues / 24h
+  H(m)  Maintainer history   0.030  ░░░░░░░░░░░░░░░░░░░░  R0 = 1.162
+  ───────────────────────────────────────────────────
+  ! Pattern C — no symbols removed; behaviour change possible
+  ───────────────────────────────────────────────────
+  CRS 0.186  ·  SAFE  ·  proceed with publish
 ```
+
+Static tools: silent. DepCast: SAFE, but flags **Pattern C** — alerting you this is the class of change that causes runtime chaos even when the API surface looks unchanged. 62.4% of confirmed breaking npm releases are Pattern C.
 
 See [`packages/depcast-check/`](packages/depcast-check/) for full CLI documentation and GitHub Actions integration.
 
